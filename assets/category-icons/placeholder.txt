@@ -1,0 +1,7 @@
+Add category icons here:
+- snacks.png
+- breakfast.png
+- drinks.png
+- coffee.png
+- canned.png
+- fruits.png
