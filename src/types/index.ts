@@ -1,16 +1,20 @@
 export interface Product {
   id: string;
   name: string;
-  description: string;
+  description?: string;
   price: number;
-  image: string;
+  image: number | string;
+  imageUrl?: string;
   category: string;
-  weight?: string;
-  nutrition?: {
-    calories: number;
-    protein: number;
-    carbs: number;
-    fat: number;
+  subcategory?: string;
+  rating?: number;
+  reviews?: number;
+  inStock?: boolean;
+  isFeatured?: boolean;
+  discount?: number;
+  brand?: string;
+  attributes?: {
+    [key: string]: string | number | boolean;
   };
 }
 
@@ -19,7 +23,7 @@ export interface CartItem {
   name: string;
   price: number;
   quantity: number;
-  image: string;
+  image: number | string;
 }
 
 export interface Category {

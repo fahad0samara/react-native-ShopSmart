@@ -17,11 +17,12 @@ import Header from '../components/Header';
 import CategoryList from '../components/CategoryList';
 import { COLORS, SPACING } from '../utils/constants';
 import { useApp } from '../context/AppContext';
+import { CATEGORIES } from '../data/mockData';
 
 const HomeScreen = () => {
   const navigation = useNavigation();
   const { width } = useWindowDimensions();
-  const { flashDeals, newArrivals } = useApp();
+  const { flashDeals = [], newArrivals = [] } = useApp();
   const [refreshing, setRefreshing] = React.useState(false);
   const [currentPage, setCurrentPage] = useState(0);
   const scrollX = useRef(new Animated.Value(0)).current;
@@ -29,33 +30,22 @@ const HomeScreen = () => {
   const banners = [
     {
       id: 1,
-      image: 'https://images.unsplash.com/photo-1542838132-92c53300491e',
+      image: require('../../assets/products/fresh produce/organic-bananas.jpg'),
       title: 'Fresh Vegetables',
       subtitle: 'Up to 50% Off',
     },
     {
       id: 2,
-      image: 'https://images.unsplash.com/photo-1553546895-531931aa1aa8',
+      image: require('../../assets/products/fresh produce/fresh-strawberries.jpg'),
       title: 'Organic Fruits',
       subtitle: 'Special Deals',
     },
     {
       id: 3,
-      image: 'https://images.unsplash.com/photo-1536304929831-ee1ca9d44906',
+      image: require('../../assets/products/snacks/trail-mix.jpg'),
       title: 'Healthy Snacks',
       subtitle: 'New Arrivals',
     },
-  ];
-
-  const featuredCategories = [
-    { id: 1, name: 'Vegetables', icon: 'food-apple', color: '#4CAF50' },
-    { id: 2, name: 'Fruits', icon: 'fruit-watermelon', color: '#FF9800' },
-    { id: 3, name: 'Meat', icon: 'food-steak', color: '#F44336' },
-    { id: 4, name: 'Fish', icon: 'fish', color: '#2196F3' },
-    { id: 5, name: 'Bakery', icon: 'bread-slice', color: '#795548' },
-    { id: 6, name: 'Drinks', icon: 'cup', color: '#9C27B0' },
-    { id: 7, name: 'Snacks', icon: 'cookie', color: '#FF5722' },
-    { id: 8, name: 'More', icon: 'dots-horizontal', color: '#607D8B' },
   ];
 
   const onRefresh = React.useCallback(() => {
@@ -96,34 +86,26 @@ const HomeScreen = () => {
                   onPress={() => navigation.navigate('Categories', { filter: item.title.toLowerCase() })}
                 >
                   <ImageBackground
-                    source={{ uri: item.image }}
+                    source={item.image}
                     style={styles.bannerImage}
                     imageStyle={{ borderRadius: 12 }}
                   >
-                    <View style={styles.bannerOverlay}>
+                    <View style={styles.bannerContent}>
                       <Text style={styles.bannerTitle}>{item.title}</Text>
                       <Text style={styles.bannerSubtitle}>{item.subtitle}</Text>
-                      <Button
-                        mode="contained"
-                        onPress={() => navigation.navigate('Categories', { filter: item.title.toLowerCase() })}
-                        style={styles.bannerButton}
-                        labelStyle={styles.bannerButtonLabel}
-                      >
-                        Shop Now
-                      </Button>
                     </View>
                   </ImageBackground>
                 </TouchableOpacity>
               ))}
             </GestureHandlerScrollView>
-            <View style={styles.pagination}>
-              {banners.map((_, i) => {
-                const inputRange = [(i - 1) * width, i * width, (i + 1) * width];
-                const dotWidth = scrollX.interpolate({
-                  inputRange,
-                  outputRange: [8, 16, 8],
-                  extrapolate: 'clamp',
-                });
+            {/* Pagination Dots */}
+            <View style={styles.paginationContainer}>
+              {banners.map((_, index) => {
+                const inputRange = [
+                  (index - 1) * width,
+                  index * width,
+                  (index + 1) * width,
+                ];
                 const opacity = scrollX.interpolate({
                   inputRange,
                   outputRange: [0.3, 1, 0.3],
@@ -131,99 +113,92 @@ const HomeScreen = () => {
                 });
                 return (
                   <Animated.View
-                    key={i}
-                    style={[
-                      styles.paginationDot,
-                      { width: dotWidth, opacity },
-                    ]}
+                    key={index}
+                    style={[styles.paginationDot, { opacity }]}
                   />
                 );
               })}
             </View>
           </View>
 
-          {/* Featured Categories Grid */}
+          {/* Categories */}
           <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Featured Categories</Text>
-            </View>
-            <View style={styles.categoriesGrid}>
-              {featuredCategories.map((category) => (
-                <TouchableOpacity
-                  key={category.id}
-                  style={styles.categoryItem}
-                  onPress={() => navigation.navigate('Categories', { filter: category.name.toLowerCase() })}
-                >
-                  <View style={[styles.categoryIcon, { backgroundColor: category.color + '20' }]}>
-                    <MaterialCommunityIcons name={category.icon} size={24} color={category.color} />
-                  </View>
-                  <Text style={styles.categoryName}>{category.name}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+            <Text style={styles.sectionTitle}>Categories</Text>
+            <CategoryList categories={CATEGORIES} />
           </View>
 
           {/* Flash Deals */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <View style={styles.flashDealsHeader}>
-                <MaterialCommunityIcons name="flash" size={24} color={COLORS.primary} />
+          {flashDeals && flashDeals.length > 0 && (
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Flash Deals</Text>
-              </View>
-              <TouchableOpacity onPress={() => navigation.navigate('Categories', { filter: 'deals' })}>
-                <Text style={styles.viewAll}>See All</Text>
-              </TouchableOpacity>
-            </View>
-            <GestureHandlerScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.sectionContent}
-            >
-              {flashDeals.map((item) => (
                 <TouchableOpacity
-                  key={item.id}
-                  style={styles.dealCard}
-                  onPress={() => navigation.navigate('ItemDetails', { item })}
+                  onPress={() => navigation.navigate('FlashDeals')}
                 >
-                  <Image source={{ uri: item.image }} style={styles.dealImage} />
-                  <View style={styles.dealInfo}>
-                    <Text style={styles.dealName} numberOfLines={1}>{item.name}</Text>
-                    <View style={styles.dealPriceRow}>
-                      <Text style={styles.dealPrice}>${item.price}</Text>
-                      <View style={styles.discountBadge}>
-                        <Text style={styles.discountText}>20% OFF</Text>
+                  <Text style={styles.seeAll}>See All</Text>
+                </TouchableOpacity>
+              </View>
+              <GestureHandlerScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.productList}
+              >
+                {flashDeals.map((item) => (
+                  <TouchableOpacity
+                    key={item.id}
+                    style={styles.productCard}
+                    onPress={() => navigation.navigate('ProductDetails', { product: item })}
+                  >
+                    <Image source={item.image} style={styles.productImage} />
+                    <View style={styles.productInfo}>
+                      <Text style={styles.productName} numberOfLines={1}>
+                        {item.name}
+                      </Text>
+                      <View style={styles.priceContainer}>
+                        <Text style={styles.price}>${item.price}</Text>
+                        <Text style={styles.discount}>{item.discount}% OFF</Text>
                       </View>
                     </View>
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </GestureHandlerScrollView>
-          </View>
+                  </TouchableOpacity>
+                ))}
+              </GestureHandlerScrollView>
+            </View>
+          )}
 
           {/* New Arrivals */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>New Arrivals</Text>
-              <TouchableOpacity onPress={() => navigation.navigate('Categories', { filter: 'new' })}>
-                <Text style={styles.viewAll}>See All</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={styles.grid}>
-              {newArrivals.map((item) => (
+          {newArrivals && newArrivals.length > 0 && (
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>New Arrivals</Text>
                 <TouchableOpacity
-                  key={item.id}
-                  style={styles.gridItem}
-                  onPress={() => navigation.navigate('ItemDetails', { item })}
+                  onPress={() => navigation.navigate('NewArrivals')}
                 >
-                  <Image source={{ uri: item.image }} style={styles.gridImage} />
-                  <View style={styles.gridInfo}>
-                    <Text style={styles.gridName} numberOfLines={1}>{item.name}</Text>
-                    <Text style={styles.gridPrice}>${item.price}</Text>
-                  </View>
+                  <Text style={styles.seeAll}>See All</Text>
                 </TouchableOpacity>
-              ))}
+              </View>
+              <GestureHandlerScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.productList}
+              >
+                {newArrivals.map((item) => (
+                  <TouchableOpacity
+                    key={item.id}
+                    style={styles.productCard}
+                    onPress={() => navigation.navigate('ProductDetails', { product: item })}
+                  >
+                    <Image source={item.image} style={styles.productImage} />
+                    <View style={styles.productInfo}>
+                      <Text style={styles.productName} numberOfLines={1}>
+                        {item.name}
+                      </Text>
+                      <Text style={styles.price}>${item.price}</Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </GestureHandlerScrollView>
             </View>
-          </View>
+          )}
         </View>
       </GestureHandlerScrollView>
     </View>
@@ -240,55 +215,46 @@ const styles = StyleSheet.create({
   },
   carouselContainer: {
     height: 200,
-    marginVertical: SPACING.sm,
+    marginBottom: SPACING.lg,
   },
   bannerContainer: {
-    height: 200,
+    height: '100%',
     paddingHorizontal: SPACING.xs,
   },
   bannerImage: {
     flex: 1,
     justifyContent: 'flex-end',
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  bannerOverlay: {
     padding: SPACING.md,
-    backgroundColor: 'rgba(0,0,0,0.3)',
+  },
+  bannerContent: {
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    padding: SPACING.sm,
+    borderRadius: 8,
   },
   bannerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
     color: '#fff',
-    marginBottom: SPACING.xs,
+    fontSize: 20,
+    fontWeight: 'bold',
   },
   bannerSubtitle: {
-    fontSize: 16,
     color: '#fff',
-    marginBottom: SPACING.md,
+    fontSize: 16,
   },
-  bannerButton: {
-    borderRadius: 8,
-    width: 120,
-  },
-  bannerButtonLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  pagination: {
+  paginationContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: SPACING.sm,
   },
   paginationDot: {
+    width: 8,
     height: 8,
     borderRadius: 4,
     backgroundColor: COLORS.primary,
     marginHorizontal: 4,
   },
   section: {
-    marginVertical: SPACING.sm,
+    marginBottom: SPACING.lg,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -296,132 +262,57 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: SPACING.sm,
   },
-  flashDealsHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.xs,
-  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: COLORS.text,
   },
-  viewAll: {
+  seeAll: {
     color: COLORS.primary,
-    fontWeight: '500',
   },
-  categoriesGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    marginHorizontal: -SPACING.xs,
+  productList: {
+    marginTop: SPACING.sm,
   },
-  categoryItem: {
-    width: '25%',
-    alignItems: 'center',
-    padding: SPACING.xs,
-    marginBottom: SPACING.sm,
-  },
-  categoryIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: SPACING.xs,
-  },
-  categoryName: {
-    fontSize: 12,
-    textAlign: 'center',
-    color: COLORS.text,
-  },
-  sectionContent: {
-    paddingHorizontal: SPACING.xs,
-  },
-  dealCard: {
-    width: 180,
+  productCard: {
+    width: 150,
     marginRight: SPACING.md,
     backgroundColor: '#fff',
-    borderRadius: 12,
+    borderRadius: 8,
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    overflow: 'hidden',
   },
-  dealImage: {
+  productImage: {
     width: '100%',
-    height: 150,
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
+    height: 120,
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
   },
-  dealInfo: {
+  productInfo: {
     padding: SPACING.sm,
   },
-  dealName: {
-    fontSize: 16,
-    fontWeight: '500',
-    marginBottom: SPACING.xs,
-    color: COLORS.text,
+  productName: {
+    fontSize: 14,
+    marginBottom: 4,
   },
-  dealPriceRow: {
+  priceContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  dealPrice: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: COLORS.primary,
-  },
-  discountBadge: {
-    backgroundColor: COLORS.primary + '20',
-    paddingHorizontal: SPACING.sm,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  discountText: {
-    color: COLORS.primary,
-    fontWeight: '500',
-    fontSize: 12,
-  },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  gridItem: {
-    width: '48%',
-    marginBottom: SPACING.md,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    overflow: 'hidden',
-  },
-  gridImage: {
-    width: '100%',
-    height: 150,
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
-  },
-  gridInfo: {
-    padding: SPACING.sm,
-  },
-  gridName: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: COLORS.text,
-    marginBottom: SPACING.xs,
-  },
-  gridPrice: {
+  price: {
     fontSize: 16,
     fontWeight: 'bold',
     color: COLORS.primary,
+  },
+  discount: {
+    fontSize: 12,
+    color: '#fff',
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
   },
 });
 

@@ -22,7 +22,7 @@ import { COLORS, SPACING } from '../utils/constants';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
-import { PRODUCTS } from '../data/products';
+import { PRODUCTS } from '../data/mockData';
 
 const { width } = Dimensions.get('window');
 
