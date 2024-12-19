@@ -9,65 +9,78 @@ import {
   Dimensions,
   Animated,
   Platform,
-  StatusBar,
-  SafeAreaView,
-} from 'react-native';
-import {
   Text,
-  Searchbar,
-  Chip,
-  Button,
-  ActivityIndicator,
-  Badge,
-  Portal,
-  Modal,
-  IconButton,
-  Divider,
-  useTheme,
+} from 'react-native';
+import { 
+  Searchbar, 
+  Button, 
+  Portal, 
+  Modal, 
+  Chip, 
+  Badge, 
+  IconButton, 
+  Divider, 
+  useTheme, 
+  ActivityIndicator 
 } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { COLORS, SPACING } from '../utils/constants';
-import { useRoute, useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { COLORS } from '../constants/colors';
 import { useApp } from '../context/AppContext';
+import { PRODUCTS } from '../data/products';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { PRODUCTS } from '../data/products';
+
+// Define spacing constants
+const SPACING = {
+  xs: 4,
+  sm: 8,
+  md: 16,
+  lg: 24,
+  xl: 32,
+  xxl: 40,
+} as const;
 
 const { width } = Dimensions.get('window');
-const HEADER_MAX_HEIGHT = Platform.OS === 'ios' ? 140 : 120;
-const HEADER_MIN_HEIGHT = Platform.OS === 'ios' ? 90 : 70;
-const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
 
 type RouteParams = {
   category: string;
   subcategory?: string;
+  product?: any;
 };
 
-const ProductsScreen = ({ route }) => {
+const ProductsScreen = () => {
   const theme = useTheme();
-  const insets = useSafeAreaInsets();
   const navigation = useNavigation();
-  const { category, subcategory } = route.params as RouteParams;
-  const [filteredProducts, setFilteredProducts] = useState(PRODUCTS);
+  const route = useRoute();
+  const safeArea = useSafeAreaInsets();
+  const { params } = route as { params: RouteParams };
+  const { category, subcategory, product } = params || {};
+  const [selectedCategory] = useState(category);
+  const [selectedSubcategory, setSelectedSubcategory] = useState(subcategory);
+  const [selectedProduct, setSelectedProduct] = useState(product);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showQuickView, setShowQuickView] = useState(false);
+  const [quickViewProduct, setQuickViewProduct] = useState(null);
+  const [filteredProducts, setFilteredProducts] = useState(PRODUCTS);
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 100]);
   const [sortBy, setSortBy] = useState('price');
   const [loading, setLoading] = useState(true);
+  const [favoriteMode, setFavoriteMode] = useState(false);
+  const [sortModalVisible, setSortModalVisible] = useState(false);
+  const [priceFilterVisible, setPriceFilterVisible] = useState(false);
+  const [viewType, setViewType] = useState<'grid' | 'list'>('grid');
+
   const { addToCart, cartItems, updateCartItemQuantity, removeFromCart } = useApp();
   const [favorites, setFavorites] = useState<string[]>([]);
-  const [selectedProduct, setSelectedProduct] = useState(null);
-  const [showFilters, setShowFilters] = useState(false);
-  const [viewType, setViewType] = useState<'grid' | 'list'>('grid');
-  const [showQuickView, setShowQuickView] = useState(false);
-
   const scrollY = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     const filtered = PRODUCTS.filter((product) => {
-      const matchesCategory = product.category.toLowerCase() === category.toLowerCase();
-      const matchesSubcategory = !subcategory || product.subcategory.toLowerCase() === subcategory.toLowerCase();
+      const matchesCategory = product.category.toLowerCase() === selectedCategory.toLowerCase();
+      const matchesSubcategory = !selectedSubcategory || product.subcategory.toLowerCase() === selectedSubcategory.toLowerCase();
       const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         product.description.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesBrands = selectedBrands.length === 0 || selectedBrands.includes(product.brand);
@@ -77,7 +90,7 @@ const ProductsScreen = ({ route }) => {
     });
 
     setFilteredProducts(filtered);
-  }, [category, subcategory, searchQuery, selectedBrands, priceRange]);
+  }, [selectedCategory, selectedSubcategory, searchQuery, selectedBrands, priceRange]);
 
   useEffect(() => {
     // Simulate loading
@@ -87,13 +100,13 @@ const ProductsScreen = ({ route }) => {
   }, []);
 
   useEffect(() => {
-    StatusBar.setBarStyle('light-content');
+    // Set status bar style
     if (Platform.OS === 'android') {
-      StatusBar.setBackgroundColor('transparent');
-      StatusBar.setTranslucent(true);
+      // StatusBar.setBackgroundColor('transparent');
+      // StatusBar.setTranslucent(true);
     }
     return () => {
-      StatusBar.setBarStyle('default');
+      // StatusBar.setBarStyle('default');
     };
   }, []);
 
@@ -120,131 +133,22 @@ const ProductsScreen = ({ route }) => {
     });
   };
 
-  const headerHeight = scrollY.interpolate({
-    inputRange: [0, HEADER_SCROLL_DISTANCE],
-    outputRange: [HEADER_MAX_HEIGHT + insets.top, HEADER_MIN_HEIGHT + insets.top],
-    extrapolate: 'clamp',
-  });
-
-  const headerTitleOpacity = scrollY.interpolate({
-    inputRange: [0, HEADER_SCROLL_DISTANCE / 2, HEADER_SCROLL_DISTANCE],
-    outputRange: [0, 0.5, 1],
-    extrapolate: 'clamp',
-  });
-
-  const headerInfoOpacity = scrollY.interpolate({
-    inputRange: [0, HEADER_SCROLL_DISTANCE / 2],
-    outputRange: [1, 0],
-    extrapolate: 'clamp',
-  });
-
-  const renderHeader = () => (
-    <Animated.View
-      style={[
-        styles.header,
-        {
-          height: headerHeight,
-          paddingTop: insets.top,
-        },
-      ]}
-    >
-      <LinearGradient
-        colors={[COLORS.primary, COLORS.secondary]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={StyleSheet.absoluteFill}
-      />
-      <View style={styles.headerContent}>
-        <View style={styles.headerTop}>
-          <IconButton
-            icon="arrow-left"
-            iconColor="#fff"
-            size={24}
-            onPress={() => navigation.goBack()}
-            style={styles.backButton}
-          />
-          <Animated.View
-            style={[
-              styles.headerTitleContainer,
-              { opacity: headerTitleOpacity },
-            ]}
-          >
-            <Text style={styles.headerTitle}>
-              {subcategory || category}
-            </Text>
-          </Animated.View>
-          <View style={styles.headerActions}>
-            <IconButton
-              icon="magnify"
-              iconColor="#fff"
-              size={24}
-              onPress={() => {/* Add search action */}}
-            />
-            <View>
-              <IconButton
-                icon="cart-outline"
-                iconColor="#fff"
-                size={24}
-                onPress={() => {/* Add cart action */}}
-              />
-              {cartItems.length > 0 && (
-                <Badge
-                  size={20}
-                  style={styles.cartBadge}
-                >
-                  {cartItems.length}
-                </Badge>
-              )}
-            </View>
-          </View>
-        </View>
-
-        <Animated.View
-          style={[
-            styles.headerInfo,
-            { opacity: headerInfoOpacity },
-          ]}
-        >
-          <Text style={styles.headerCategory}>
-            {category}
-          </Text>
-          {subcategory && (
-            <Text style={styles.headerSubcategory}>
-              {subcategory}
-            </Text>
-          )}
-        </Animated.View>
-
-        <View style={styles.searchContainer}>
-          <Searchbar
-            placeholder="Search products"
-            onChangeText={setSearchQuery}
-            value={searchQuery}
-            style={styles.searchBar}
-            inputStyle={styles.searchInput}
-            iconColor={COLORS.primary}
-            placeholderTextColor={COLORS.textLight}
-          />
-          <View style={styles.viewTypeContainer}>
-            <IconButton
-              icon={viewType === 'grid' ? 'view-grid' : 'view-list'}
-              iconColor={COLORS.primary}
-              size={24}
-              onPress={() => setViewType(prev => prev === 'grid' ? 'list' : 'grid')}
-              style={styles.viewTypeButton}
-            />
-            <IconButton
-              icon="filter-variant"
-              iconColor={COLORS.primary}
-              size={24}
-              onPress={() => setShowFilters(true)}
-              style={styles.filterButton}
-            />
-          </View>
-        </View>
-      </View>
-    </Animated.View>
-  );
+  const getCategoryIcon = (category: string): string => {
+    const icons: { [key: string]: string } = {
+      'Fruits & Vegetables': 'fruit-watermelon',
+      'Meat & Fish': 'food-steak',
+      'Bakery': 'bread-slice',
+      'Dairy': 'cheese',
+      'Beverages': 'cup',
+      'Snacks': 'cookie',
+      'Household': 'home',
+      'Personal Care': 'face-man',
+      'Baby Care': 'baby-carriage',
+      'Pet Care': 'dog',
+      // Add more category icons as needed
+    };
+    return icons[category] || 'shape-outline'; // Default icon if category not found
+  };
 
   const renderQuickViewModal = () => (
     <Portal>
@@ -253,7 +157,7 @@ const ProductsScreen = ({ route }) => {
         onDismiss={() => setShowQuickView(false)}
         contentContainerStyle={styles.modalContainer}
       >
-        {selectedProduct && (
+        {quickViewProduct && (
           <ScrollView>
             <IconButton
               icon="close"
@@ -262,13 +166,13 @@ const ProductsScreen = ({ route }) => {
               onPress={() => setShowQuickView(false)}
             />
             <Image
-              source={{ uri: selectedProduct.image }}
+              source={{ uri: quickViewProduct.image }}
               style={styles.modalImage}
             />
             <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>{selectedProduct.name}</Text>
+              <Text style={styles.modalTitle}>{quickViewProduct.name}</Text>
               <Text style={styles.modalDescription}>
-                {selectedProduct.description}
+                {quickViewProduct.description}
               </Text>
               <View style={styles.modalMeta}>
                 <View style={styles.ratingContainer}>
@@ -277,42 +181,36 @@ const ProductsScreen = ({ route }) => {
                     size={20}
                     color={COLORS.accent}
                   />
-                  <Text style={[styles.rating, { fontSize: 16 }]}>
-                    {selectedProduct.rating}
-                  </Text>
-                  <Text style={[styles.reviews, { fontSize: 16 }]}>
-                    ({selectedProduct.reviews} reviews)
-                  </Text>
+                  <Text style={styles.rating}>{quickViewProduct.rating}</Text>
+                  <Text style={styles.reviews}>({quickViewProduct.reviews} reviews)</Text>
                 </View>
-                <Text style={[styles.brand, { fontSize: 16 }]}>
-                  {selectedProduct.brand}
-                </Text>
+                <Text style={styles.brand}>{quickViewProduct.brand}</Text>
               </View>
-              {selectedProduct.nutrition && (
+              {quickViewProduct.nutrition && (
                 <View style={styles.nutritionInfo}>
                   <Text style={styles.nutritionTitle}>Nutrition Facts</Text>
                   <View style={styles.nutritionGrid}>
                     <View style={styles.nutritionItem}>
                       <Text style={styles.nutritionValue}>
-                        {selectedProduct.nutrition.calories}
+                        {quickViewProduct.nutrition.calories}
                       </Text>
                       <Text style={styles.nutritionLabel}>Calories</Text>
                     </View>
                     <View style={styles.nutritionItem}>
                       <Text style={styles.nutritionValue}>
-                        {selectedProduct.nutrition.protein}g
+                        {quickViewProduct.nutrition.protein}g
                       </Text>
                       <Text style={styles.nutritionLabel}>Protein</Text>
                     </View>
                     <View style={styles.nutritionItem}>
                       <Text style={styles.nutritionValue}>
-                        {selectedProduct.nutrition.carbs}g
+                        {quickViewProduct.nutrition.carbs}g
                       </Text>
                       <Text style={styles.nutritionLabel}>Carbs</Text>
                     </View>
                     <View style={styles.nutritionItem}>
                       <Text style={styles.nutritionValue}>
-                        {selectedProduct.nutrition.fat}g
+                        {quickViewProduct.nutrition.fat}g
                       </Text>
                       <Text style={styles.nutritionLabel}>Fat</Text>
                     </View>
@@ -322,50 +220,50 @@ const ProductsScreen = ({ route }) => {
               <View style={styles.modalPriceContainer}>
                 <View>
                   <Text style={styles.modalPrice}>
-                    ${selectedProduct.price.toFixed(2)}
+                    ${quickViewProduct.price.toFixed(2)}
                   </Text>
-                  {selectedProduct.originalPrice && (
+                  {quickViewProduct.originalPrice && (
                     <Text style={styles.modalOriginalPrice}>
-                      ${selectedProduct.originalPrice.toFixed(2)}
+                      ${quickViewProduct.originalPrice.toFixed(2)}
                     </Text>
                   )}
                 </View>
-                {selectedProduct.unit && (
-                  <Text style={styles.modalUnit}>/ {selectedProduct.unit}</Text>
+                {quickViewProduct.unit && (
+                  <Text style={styles.modalUnit}>/ {quickViewProduct.unit}</Text>
                 )}
               </View>
-              {selectedProduct.inStock ? (
+              {quickViewProduct.inStock ? (
                 <View style={styles.modalCartActions}>
-                  {cartItems.some((item) => item.id === selectedProduct.id) ? (
+                  {cartItems.some((item) => item.id === quickViewProduct.id) ? (
                     <View style={styles.modalQuantityContainer}>
                       <IconButton
                         icon="minus"
                         size={24}
                         onPress={() => {
-                          const currentQuantity = cartItems.find((item) => item.id === selectedProduct.id)?.quantity || 0;
+                          const currentQuantity = cartItems.find((item) => item.id === quickViewProduct.id)?.quantity || 0;
                           if (currentQuantity > 1) {
                             updateCartItemQuantity(
-                              selectedProduct.id,
+                              quickViewProduct.id,
                               currentQuantity - 1
                             );
                           } else {
-                            removeFromCart(selectedProduct.id);
+                            removeFromCart(quickViewProduct.id);
                           }
                         }}
                       />
                       <Text style={styles.modalQuantity}>
-                        {cartItems.find((item) => item.id === selectedProduct.id)?.quantity || 0}
+                        {cartItems.find((item) => item.id === quickViewProduct.id)?.quantity || 0}
                       </Text>
                       <IconButton
                         icon="plus"
                         size={24}
-                        onPress={() => addToCart(selectedProduct)}
+                        onPress={() => addToCart(quickViewProduct)}
                       />
                     </View>
                   ) : (
                     <TouchableOpacity
                       style={styles.modalAddToCartButton}
-                      onPress={() => addToCart(selectedProduct)}
+                      onPress={() => addToCart(quickViewProduct)}
                     >
                       <MaterialCommunityIcons
                         name="cart-plus"
@@ -391,13 +289,13 @@ const ProductsScreen = ({ route }) => {
   const renderFilterModal = () => (
     <Portal>
       <Modal
-        visible={showFilters}
-        onDismiss={() => setShowFilters(false)}
+        visible={false}
+        onDismiss={() => {}}
         contentContainerStyle={styles.filterModal}
       >
         <View style={styles.filterHeader}>
           <Text style={styles.filterTitle}>Filters</Text>
-          <IconButton icon="close" onPress={() => setShowFilters(false)} />
+          <IconButton icon="close" onPress={() => {}} />
         </View>
         <Divider />
         <ScrollView style={styles.filterContent}>
@@ -434,7 +332,7 @@ const ProductsScreen = ({ route }) => {
           }}>
             Reset
           </Button>
-          <Button mode="contained" onPress={() => setShowFilters(false)}>
+          <Button mode="contained" onPress={() => {}}>
             Apply
           </Button>
         </View>
@@ -442,61 +340,87 @@ const ProductsScreen = ({ route }) => {
     </Portal>
   );
 
+  const handleProductPress = (item) => {
+    setSelectedProduct(item);
+    setShowQuickView(true);
+    setQuickViewProduct(item);
+  };
+
+  const navigateToProduct = (product) => {
+    navigation.navigate('Product', {
+      category: selectedCategory,
+      subcategory: selectedSubcategory,
+      productId: product.id,
+      productName: product.name
+    });
+  };
+
+  const windowWidth = Dimensions.get('window').width;
+  const numColumns = Math.floor(windowWidth / 180); // Adjust grid items based on screen width
+  const itemWidth = (windowWidth - (SPACING.sm * (numColumns + 1))) / numColumns;
+
   const renderGridItem = ({ item }) => (
     <TouchableOpacity
-      style={styles.gridCard}
-      onPress={() => {
-        setSelectedProduct(item);
-        setShowQuickView(true);
-      }}
+      style={[styles.gridItem, { width: itemWidth }]}
+      onPress={() => handleProductPress(item)}
       activeOpacity={0.7}
     >
-      <Image source={{ uri: item.image }} style={styles.gridImage} />
-      <LinearGradient
-        colors={['transparent', 'rgba(0,0,0,0.8)']}
-        style={styles.gridGradient}
-      >
-        <View style={styles.gridContent}>
-          <View style={styles.gridHeader}>
-            <TouchableOpacity
-              onPress={(e) => {
-                e.stopPropagation();
-                toggleFavorite(item.id);
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              }}
-              style={styles.favoriteButton}
-            >
-              <MaterialCommunityIcons
-                name={favorites.includes(item.id) ? 'heart' : 'heart-outline'}
-                size={24}
-                color={favorites.includes(item.id) ? '#ff4081' : '#fff'}
-              />
-            </TouchableOpacity>
-            {cartItems.some(cartItem => cartItem.id === item.id) && (
-              <Badge style={styles.cartBadge}>In Cart</Badge>
+      <View style={styles.gridImageContainer}>
+        <Image source={{ uri: item.image }} style={styles.gridImage} />
+        {!item.inStock && (
+          <View style={styles.outOfStockBadge}>
+            <Text style={styles.outOfStockText}>Out of Stock</Text>
+          </View>
+        )}
+        {item.discount > 0 && (
+          <View style={styles.discountBadge}>
+            <Text style={styles.discountText}>{item.discount}% OFF</Text>
+          </View>
+        )}
+        <TouchableOpacity
+          style={styles.favoriteButton}
+          onPress={() => toggleFavorite(item.id)}
+        >
+          <MaterialCommunityIcons
+            name={favorites.includes(item.id) ? "heart" : "heart-outline"}
+            size={24}
+            color={favorites.includes(item.id) ? COLORS.accent : "#fff"}
+          />
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.gridContent}>
+        <Text style={styles.gridName} numberOfLines={2}>
+          {item.name}
+        </Text>
+        
+        {item.rating && (
+          <View style={styles.ratingRow}>
+            <MaterialCommunityIcons name="star" size={16} color={COLORS.accent} />
+            <Text style={styles.ratingText}>{item.rating}</Text>
+            <Text style={styles.reviewCount}>({item.reviews})</Text>
+          </View>
+        )}
+
+        <View style={styles.priceRow}>
+          <View style={styles.priceContainer}>
+            <Text style={styles.price}>${item.price.toFixed(2)}</Text>
+            {item.originalPrice && (
+              <Text style={styles.originalPrice}>
+                ${item.originalPrice.toFixed(2)}
+              </Text>
             )}
           </View>
-          <View style={styles.gridFooter}>
-            <Text style={styles.gridName} numberOfLines={2}>{item.name}</Text>
-            <Text style={styles.gridBrand}>{item.brand}</Text>
-            <View style={styles.gridPriceRow}>
-              <Text style={styles.gridPrice}>${item.price.toFixed(2)}</Text>
-              <Button
-                mode="contained"
-                onPress={(e) => {
-                  e.stopPropagation();
-                  addToCart(item);
-                  Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                }}
-                style={styles.gridButton}
-                labelStyle={styles.gridButtonLabel}
-              >
-                Add
-              </Button>
-            </View>
-          </View>
+          {item.inStock && (
+            <TouchableOpacity
+              style={styles.addButton}
+              onPress={() => addToCart(item)}
+            >
+              <MaterialCommunityIcons name="plus" size={20} color="#fff" />
+            </TouchableOpacity>
+          )}
         </View>
-      </LinearGradient>
+      </View>
     </TouchableOpacity>
   );
 
@@ -504,189 +428,271 @@ const ProductsScreen = ({ route }) => {
     const isInCart = cartItems.some((cartItem) => cartItem.id === item.id);
     const cartItem = cartItems.find((cartItem) => cartItem.id === item.id);
 
-    const handleAddToCart = () => {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      addToCart(item);
-    };
-
-    const handleQuantityChange = (increment: boolean) => {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      if (increment) {
-        addToCart(item);
-      } else {
-        const currentQuantity = cartItem?.quantity || 0;
-        if (currentQuantity > 1) {
-          updateCartItemQuantity(item.id, currentQuantity - 1);
-        } else {
-          removeFromCart(item.id);
-        }
-      }
-    };
-
     return (
       <TouchableOpacity
-        style={[styles.productCard, { opacity: item.inStock ? 1 : 0.6 }]}
-        onPress={() => {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          setSelectedProduct(item);
-          setShowQuickView(true);
-        }}
+        style={styles.productCard}
+        onPress={() => handleProductPress(item)}
         activeOpacity={0.7}
       >
-        <Image source={{ uri: item.image }} style={styles.productImage} />
-        {!item.inStock && (
-          <View style={styles.outOfStockBadge}>
-            <Text style={styles.outOfStockText}>Out of Stock</Text>
-          </View>
-        )}
-        {item.discount && (
-          <View style={styles.discountBadge}>
-            <Text style={styles.discountText}>{item.discount}</Text>
-          </View>
-        )}
+        <View style={styles.productLeft}>
+          <Image source={{ uri: item.image }} style={styles.productImage} />
+          {!item.inStock && (
+            <View style={styles.outOfStockBadge}>
+              <Text style={styles.outOfStockText}>Out of Stock</Text>
+            </View>
+          )}
+          {item.discount && (
+            <View style={styles.discountBadge}>
+              <Text style={styles.discountText}>{item.discount}% OFF</Text>
+            </View>
+          )}
+        </View>
+        
         <View style={styles.productInfo}>
-          <Text style={styles.productName} numberOfLines={2}>
-            {item.name}
-          </Text>
+          <View style={styles.productHeader}>
+            <Text style={styles.productName} numberOfLines={2}>
+              {item.name}
+            </Text>
+            <TouchableOpacity
+              onPress={() => toggleFavorite(item.id)}
+              style={styles.favoriteButton}
+            >
+              <MaterialCommunityIcons
+                name={favorites.includes(item.id) ? 'heart' : 'heart-outline'}
+                size={24}
+                color={favorites.includes(item.id) ? COLORS.accent : COLORS.textLight}
+              />
+            </TouchableOpacity>
+          </View>
+
           <Text style={styles.productDescription} numberOfLines={2}>
             {item.description}
           </Text>
+
           <View style={styles.productMeta}>
-            <View style={styles.ratingContainer}>
-              <MaterialCommunityIcons name="star" size={16} color={COLORS.accent} />
-              <Text style={styles.rating}>{item.rating}</Text>
-              <Text style={styles.reviews}>({item.reviews})</Text>
-            </View>
-            <Text style={styles.brand}>{item.brand}</Text>
+            {item.rating && (
+              <View style={styles.ratingContainer}>
+                <MaterialCommunityIcons name="star" size={16} color={COLORS.accent} />
+                <Text style={styles.rating}>{item.rating}</Text>
+                <Text style={styles.reviews}>({item.reviews})</Text>
+              </View>
+            )}
+            {item.brand && (
+              <Text style={styles.brand}>{item.brand}</Text>
+            )}
           </View>
-          <View style={styles.priceContainer}>
-            <View>
+
+          <View style={styles.productFooter}>
+            <View style={styles.priceContainer}>
               <Text style={styles.price}>${item.price.toFixed(2)}</Text>
               {item.originalPrice && (
                 <Text style={styles.originalPrice}>
                   ${item.originalPrice.toFixed(2)}
                 </Text>
               )}
-            </View>
-            {item.unit && <Text style={styles.unit}>/ {item.unit}</Text>}
-          </View>
-          {item.inStock && (
-            <View style={styles.cartActions}>
-              {isInCart ? (
-                <View style={styles.quantityContainer}>
-                  <IconButton
-                    icon="minus"
-                    size={20}
-                    onPress={() => handleQuantityChange(false)}
-                    style={styles.quantityButton}
-                  />
-                  <Text style={styles.quantity}>{cartItem?.quantity || 0}</Text>
-                  <IconButton
-                    icon="plus"
-                    size={20}
-                    onPress={() => handleQuantityChange(true)}
-                    style={styles.quantityButton}
-                  />
-                </View>
-              ) : (
-                <TouchableOpacity
-                  style={styles.addToCartButton}
-                  onPress={handleAddToCart}
-                >
-                  <MaterialCommunityIcons
-                    name="cart-plus"
-                    size={20}
-                    color="#fff"
-                  />
-                  <Text style={styles.addToCartText}>Add to Cart</Text>
-                </TouchableOpacity>
+              {item.unit && (
+                <Text style={styles.unit}>/ {item.unit}</Text>
               )}
             </View>
-          )}
+
+            {item.inStock && (
+              <View style={styles.cartActions}>
+                {isInCart ? (
+                  <View style={styles.quantityContainer}>
+                    <IconButton
+                      icon="minus"
+                      size={20}
+                      onPress={() => {
+                        const currentQuantity = cartItems.find((cartItem) => cartItem.id === item.id)?.quantity || 0;
+                        if (currentQuantity > 1) {
+                          updateCartItemQuantity(item.id, currentQuantity - 1);
+                        } else {
+                          removeFromCart(item.id);
+                        }
+                      }}
+                      style={styles.quantityButton}
+                    />
+                    <Text style={styles.quantity}>{cartItem?.quantity || 0}</Text>
+                    <IconButton
+                      icon="plus"
+                      size={20}
+                      onPress={() => addToCart(item)}
+                      style={styles.quantityButton}
+                    />
+                  </View>
+                ) : (
+                  <TouchableOpacity
+                    style={styles.addButton}
+                    onPress={() => addToCart(item)}
+                  >
+                    <MaterialCommunityIcons
+                      name="cart-plus"
+                      size={20}
+                      color="#fff"
+                    />
+                    <Text style={styles.addButtonText}>Add</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
+          </View>
         </View>
       </TouchableOpacity>
     );
   };
 
+  const handleAddToCart = (item) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    addToCart(item);
+  };
+
+  const handleQuantityChange = (item, increment) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (increment) {
+      addToCart(item);
+    } else {
+      const currentQuantity = cartItems.find((cartItem) => cartItem.id === item.id)?.quantity || 0;
+      if (currentQuantity > 1) {
+        updateCartItemQuantity(item.id, currentQuantity - 1);
+      } else {
+        removeFromCart(item.id);
+      }
+    }
+  };
+
   return (
-    <View style={[styles.container, { paddingTop: HEADER_MAX_HEIGHT + insets.top }]}>
-      {renderHeader()}
-      
-      <View style={styles.sortContainer}>
-        <ScrollView
-          horizontal
+    <View style={styles.container}>
+      <View style={[styles.topBar, { paddingTop: safeArea.top }]}>
+        <View style={styles.searchRow}>
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <MaterialCommunityIcons name="chevron-left" size={28} color={COLORS.text} />
+          </TouchableOpacity>
+          <Searchbar
+            placeholder="Search products..."
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            style={styles.searchBar}
+            inputStyle={styles.searchInput}
+            iconColor={COLORS.textLight}
+            placeholderTextColor={COLORS.textLight}
+          />
+        </View>
+
+        <ScrollView 
+          horizontal 
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.sortScrollContent}
+          contentContainerStyle={styles.filterScroll}
         >
-          <Chip
-            selected={sortBy === 'price'}
-            onPress={() => setSortBy('price')}
-            style={styles.sortChip}
-            icon="sort"
+          <TouchableOpacity 
+            style={[styles.filterChip, sortModalVisible && styles.filterChipActive]}
+            onPress={() => setSortModalVisible(true)}
           >
-            Price
-          </Chip>
-          <Chip
-            selected={sortBy === 'rating'}
-            onPress={() => setSortBy('rating')}
-            style={styles.sortChip}
-            icon="star"
+            <MaterialCommunityIcons 
+              name="sort" 
+              size={18} 
+              color={sortModalVisible ? COLORS.primary : COLORS.text} 
+            />
+            <Text style={[styles.filterChipText, sortModalVisible && styles.filterChipTextActive]}>
+              Sort
+            </Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={[styles.filterChip, priceFilterVisible && styles.filterChipActive]}
+            onPress={() => setPriceFilterVisible(true)}
           >
-            Rating
-          </Chip>
-          <Chip
-            selected={sortBy === 'name'}
-            onPress={() => setSortBy('name')}
-            style={styles.sortChip}
-            icon="alphabetical"
+            <MaterialCommunityIcons 
+              name="cash" 
+              size={18} 
+              color={priceFilterVisible ? COLORS.primary : COLORS.text} 
+            />
+            <Text style={[styles.filterChipText, priceFilterVisible && styles.filterChipTextActive]}>
+              Price
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.filterChip, viewType === 'grid' ? styles.filterChipActive : null]}
+            onPress={() => setViewType(viewType === 'grid' ? 'list' : 'grid')}
           >
-            Name
-          </Chip>
+            <MaterialCommunityIcons 
+              name={viewType === 'grid' ? "view-grid" : "view-list"} 
+              size={18} 
+              color={viewType === 'grid' ? COLORS.primary : COLORS.text} 
+            />
+            <Text style={[styles.filterChipText, viewType === 'grid' && styles.filterChipTextActive]}>
+              {viewType === 'grid' ? 'Grid' : 'List'}
+            </Text>
+          </TouchableOpacity>
+
+          {selectedCategory && (
+            <TouchableOpacity 
+              style={[styles.filterChip, styles.categoryChip]}
+              onPress={() => navigation.goBack()}
+            >
+              <MaterialCommunityIcons 
+                name={getCategoryIcon(typeof selectedCategory === 'string' ? selectedCategory : selectedCategory.name)} 
+                size={18} 
+                color={COLORS.primary} 
+              />
+              <Text style={[styles.filterChipText, styles.categoryChipText]} numberOfLines={1}>
+                {typeof selectedCategory === 'string' ? selectedCategory : selectedCategory.name}
+              </Text>
+              <MaterialCommunityIcons name="close" size={16} color={COLORS.primary} />
+            </TouchableOpacity>
+          )}
         </ScrollView>
       </View>
 
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
-        </View>
-      ) : filteredProducts.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <MaterialCommunityIcons
-            name="emoticon-sad-outline"
-            size={48}
-            color={COLORS.textLight}
-          />
-          <Text style={styles.emptyText}>No products found</Text>
-          <Button
-            mode="contained"
-            onPress={() => {
-              setSearchQuery('');
-              setSelectedBrands([]);
-              setPriceRange([0, 100]);
-            }}
-            style={styles.resetButton}
-          >
-            Reset Filters
-          </Button>
-        </View>
-      ) : (
-        <FlatList
-          data={sortProducts(filteredProducts)}
-          renderItem={viewType === 'grid' ? renderGridItem : renderProduct}
-          keyExtractor={item => item.id}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={viewType === 'grid' ? styles.gridList : styles.listContent}
-          numColumns={viewType === 'grid' ? 2 : 1}
-          key={viewType} // Force re-render when view type changes
-          onScroll={Animated.event(
-            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-            { useNativeDriver: false }
-          )}
-        />
-      )}
+      <Animated.FlatList
+        key={viewType}
+        data={filteredProducts}
+        renderItem={viewType === 'grid' ? renderGridItem : renderProduct}
+        numColumns={viewType === 'grid' ? numColumns : 1}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={[
+          styles.listContent,
+          { paddingBottom: safeArea.bottom + SPACING.xl + 60 }
+        ]}
+        showsVerticalScrollIndicator={false}
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <MaterialCommunityIcons
+              name="database-search"
+              size={64}
+              color={COLORS.textLight}
+            />
+            <Text style={styles.emptyText}>No products found</Text>
+            <Button
+              mode="contained"
+              onPress={() => {
+                setSearchQuery('');
+                setSelectedSubcategory(null);
+              }}
+            >
+              Clear Filters
+            </Button>
+          </View>
+        }
+      />
 
-      {renderQuickViewModal()}
-      {renderFilterModal()}
+      {/* Quick Actions */}
+      <View style={[styles.quickActions, { bottom: safeArea.bottom + SPACING.sm }]}>
+        <TouchableOpacity 
+          style={styles.quickButton}
+          onPress={() => navigation.navigate('Cart')}
+        >
+          <MaterialCommunityIcons name="cart-outline" size={24} color="#fff" />
+          {cartItems.length > 0 && (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{cartItems.length}</Text>
+            </View>
+          )}
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };
@@ -696,188 +702,217 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
-  header: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    overflow: 'hidden',
-    zIndex: 1000,
+  topBar: {
+    backgroundColor: '#fff',
+    paddingHorizontal: SPACING.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.1)',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
   },
-  headerContent: {
-    flex: 1,
-  },
-  headerTop: {
+  searchRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: SPACING.xs,
-    height: 44,
+    gap: SPACING.xs,
+    paddingVertical: SPACING.sm,
   },
   backButton: {
-    marginLeft: -8,
-  },
-  headerTitleContainer: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.05)',
     alignItems: 'center',
     justifyContent: 'center',
-    height: '100%',
-  },
-  headerTitle: {
-    color: '#fff',
-    fontSize: 17,
-    fontWeight: '600',
-  },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  cartBadge: {
-    position: 'absolute',
-    top: 4,
-    right: 4,
-    backgroundColor: COLORS.accent,
-  },
-  headerInfo: {
-    paddingHorizontal: SPACING.md,
-    paddingTop: SPACING.sm,
-  },
-  headerCategory: {
-    color: '#fff',
-    fontSize: 28,
-    fontWeight: 'bold',
-    letterSpacing: 0.5,
-  },
-  headerSubcategory: {
-    color: 'rgba(255,255,255,0.8)',
-    fontSize: 16,
-    marginTop: 4,
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: SPACING.sm,
-    paddingVertical: SPACING.xs,
   },
   searchBar: {
     flex: 1,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.05)',
     elevation: 0,
-    backgroundColor: 'rgba(255,255,255,0.95)',
-    borderRadius: 12,
-    height: 40,
   },
   searchInput: {
     fontSize: 14,
   },
-  viewTypeContainer: {
+  filterScroll: {
+    paddingBottom: SPACING.sm,
+    gap: SPACING.sm,
+  },
+  filterChip: {
     flexDirection: 'row',
-    marginLeft: SPACING.xs,
-  },
-  viewTypeButton: {
-    backgroundColor: 'rgba(255,255,255,0.95)',
-    margin: 0,
-    borderRadius: 8,
-  },
-  filterButton: {
-    backgroundColor: 'rgba(255,255,255,0.95)',
-    margin: 0,
-    marginLeft: SPACING.xs,
-    borderRadius: 8,
-  },
-  sortContainer: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-    backgroundColor: '#fff',
-  },
-  sortScrollContent: {
-    paddingHorizontal: SPACING.sm,
-    paddingVertical: SPACING.xs,
-  },
-  sortChip: {
-    marginRight: SPACING.xs,
+    alignItems: 'center',
     backgroundColor: 'rgba(0,0,0,0.05)',
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 8,
+    borderRadius: 20,
+    gap: 6,
   },
-  gridList: {
+  filterChipActive: {
+    backgroundColor: COLORS.primary + '15',
+  },
+  filterChipText: {
+    color: COLORS.text,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  filterChipTextActive: {
+    color: COLORS.primary,
+  },
+  categoryChip: {
+    backgroundColor: COLORS.primary + '15',
+  },
+  categoryChipText: {
+    color: COLORS.primary,
+    maxWidth: 120,
+  },
+  listContent: {
     padding: SPACING.sm,
+    paddingBottom: SPACING.xl + 60, // Extra space for quick actions
   },
-  gridCard: {
-    flex: 1,
-    margin: SPACING.xs,
+  quickActions: {
+    position: 'absolute',
+    bottom: SPACING.sm,
+    right: SPACING.sm,
+    flexDirection: 'row',
+    gap: SPACING.sm,
+  },
+  quickButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: COLORS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
+  },
+  badge: {
+    position: 'absolute',
+    top: -5,
+    right: -5,
+    backgroundColor: COLORS.accent,
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  badgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  gridItem: {
+    backgroundColor: '#fff',
     borderRadius: 12,
+    margin: SPACING.xs,
     overflow: 'hidden',
-    height: 250,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
+  },
+  gridImageContainer: {
+    width: '100%',
+    aspectRatio: 1,
+    position: 'relative',
   },
   gridImage: {
     width: '100%',
     height: '100%',
-  },
-  gridGradient: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: '100%',
-    padding: SPACING.sm,
+    resizeMode: 'cover',
   },
   gridContent: {
-    flex: 1,
-    justifyContent: 'space-between',
-  },
-  gridHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  gridFooter: {
-    gap: SPACING.xs,
+    padding: SPACING.sm,
   },
   gridName: {
-    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginBottom: 4,
+  },
+  ratingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    gap: 4,
+  },
+  ratingText: {
+    fontSize: 12,
+    color: COLORS.text,
+    fontWeight: '600',
+  },
+  reviewCount: {
+    fontSize: 12,
+    color: COLORS.textLight,
+  },
+  priceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  priceContainer: {
+    flex: 1,
+  },
+  price: {
     fontSize: 16,
     fontWeight: 'bold',
+    color: COLORS.primary,
   },
-  gridBrand: {
-    color: '#fff',
-    opacity: 0.8,
-    fontSize: 14,
-  },
-  gridPriceRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  gridPrice: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  gridButton: {
-    borderRadius: 8,
-  },
-  gridButtonLabel: {
+  originalPrice: {
     fontSize: 12,
+    color: COLORS.textLight,
+    textDecorationLine: 'line-through',
   },
-  productCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    marginBottom: SPACING.sm,
-    overflow: 'hidden',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+  addButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: COLORS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  productImage: {
-    width: '100%',
-    height: 200,
-    resizeMode: 'cover',
+  favoriteButton: {
+    position: 'absolute',
+    top: SPACING.xs,
+    right: SPACING.xs,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   outOfStockBadge: {
     position: 'absolute',
-    top: 8,
-    right: 8,
+    top: SPACING.xs,
+    left: SPACING.xs,
     backgroundColor: 'rgba(0,0,0,0.7)',
     paddingHorizontal: 8,
     paddingVertical: 4,
@@ -885,13 +920,13 @@ const styles = StyleSheet.create({
   },
   outOfStockText: {
     color: '#fff',
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: 'bold',
   },
   discountBadge: {
     position: 'absolute',
-    top: 8,
-    left: 8,
+    bottom: SPACING.xs,
+    left: SPACING.xs,
     backgroundColor: COLORS.accent,
     paddingHorizontal: 8,
     paddingVertical: 4,
@@ -899,16 +934,57 @@ const styles = StyleSheet.create({
   },
   discountText: {
     color: '#fff',
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: 'bold',
+  },
+  productCard: {
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+    marginHorizontal: SPACING.sm,
+    marginVertical: SPACING.xs,
+    borderRadius: 12,
+    overflow: 'hidden',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
+  },
+  productLeft: {
+    width: 120,
+    height: 120,
+    position: 'relative',
+  },
+  productImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
   },
   productInfo: {
+    flex: 1,
     padding: SPACING.sm,
   },
+  productHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 4,
+  },
   productName: {
+    flex: 1,
     fontSize: 16,
     fontWeight: 'bold',
-    marginBottom: 4,
+    color: COLORS.text,
+    marginRight: SPACING.sm,
+  },
+  favoriteButton: {
+    padding: 4,
   },
   productDescription: {
     fontSize: 14,
@@ -928,6 +1004,7 @@ const styles = StyleSheet.create({
   rating: {
     marginLeft: 4,
     fontWeight: 'bold',
+    color: COLORS.text,
   },
   reviews: {
     marginLeft: 4,
@@ -935,12 +1012,17 @@ const styles = StyleSheet.create({
   },
   brand: {
     color: COLORS.textLight,
+    fontSize: 14,
+  },
+  productFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   priceContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    marginBottom: 8,
+    alignItems: 'baseline',
+    gap: 4,
   },
   price: {
     fontSize: 18,
@@ -958,7 +1040,6 @@ const styles = StyleSheet.create({
   },
   cartActions: {
     flexDirection: 'row',
-    justifyContent: 'center',
     alignItems: 'center',
   },
   quantityContainer: {
@@ -966,7 +1047,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: COLORS.background,
     borderRadius: 8,
-    paddingHorizontal: 4,
   },
   quantityButton: {
     margin: 0,
@@ -977,19 +1057,19 @@ const styles = StyleSheet.create({
     minWidth: 30,
     textAlign: 'center',
   },
-  addToCartButton: {
+  addButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
     backgroundColor: COLORS.primary,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: 8,
-    gap: 8,
+    gap: 4,
   },
-  addToCartText: {
+  addButtonText: {
     color: '#fff',
     fontWeight: 'bold',
+    fontSize: 14,
   },
   modalContainer: {
     backgroundColor: '#fff',

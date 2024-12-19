@@ -3,6 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { NavigationContainer } from '@react-navigation/native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useTheme } from 'react-native-paper';
 import HomeScreen from '../screens/HomeScreen';
 import CartScreen from '../screens/CartScreen';
 import OrdersScreen from '../screens/OrdersScreen';
@@ -23,6 +24,8 @@ import SettingsScreen from '../screens/SettingsScreen';
 import RewardsScreen from '../screens/RewardsScreen';
 import MyReviewsScreen from '../screens/MyReviewsScreen';
 import LoginScreen from '../screens/LoginScreen';
+import SplashScreen from '../screens/SplashScreen';
+import OnboardingScreen from '../screens/OnboardingScreen';
 import { COLORS } from '../utils/constants';
 import { useApp } from '../context/AppContext';
 
@@ -164,16 +167,23 @@ const TabNavigator = () => {
   );
 };
 
-const AppNavigator = () => {
+const AppNavigator = ({ initialRoute = 'Splash' }) => {
+  const theme = useTheme();
+
   return (
     <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="Main" component={TabNavigator} />
+      <Stack.Navigator
+        initialRouteName={initialRoute}
+        screenOptions={{
+          headerShown: false,
+        }}
+      >
+        <Stack.Screen name="Splash" component={SplashScreen} />
+        <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+        <Stack.Screen name="MainTabs" component={TabNavigator} />
         <Stack.Screen name="Checkout" component={CheckoutScreen} />
         <Stack.Screen name="OrderConfirmation" component={OrderConfirmationScreen} />
-        <Stack.Screen name="Settings" component={SettingsScreen} />
-        <Stack.Screen name="Rewards" component={RewardsScreen} />
-        <Stack.Screen name="Reviews" component={MyReviewsScreen} />
+        <Stack.Screen name="Login" component={LoginScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

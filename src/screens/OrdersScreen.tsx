@@ -13,6 +13,7 @@ import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { BlurView } from 'expo-blur';
 import { theme } from '../utils/theme';
+import { OrderCardSkeleton } from '../components/SkeletonLoader';
 
 const generatePDFInvoice = async (order) => {
   try {
@@ -200,6 +201,7 @@ const OrdersScreen = () => {
   const theme = useTheme();
   const navigation = useNavigation();
   const rowTranslateAnimatedValue = useRef({}).current;
+  const [loading, setLoading] = useState(true);
 
   if (!user) {
     return (
@@ -702,39 +704,47 @@ const OrdersScreen = () => {
           style={styles.scrollView}
           showsVerticalScrollIndicator={false}
         >
-          {filteredOrders.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Ionicons 
-                name="cart-outline" 
-                size={80} 
-                color={theme.colors.primary}
-                style={styles.emptyIcon}
-              />
-              <Text style={styles.emptyText}>No orders found</Text>
-              <Text style={styles.emptySubtext}>
-                Start shopping to see your orders here
-              </Text>
-              <Button 
-                mode="contained" 
-                onPress={() => navigation.navigate('Home')}
-                style={styles.shopButton}
-                labelStyle={styles.shopButtonLabel}
-              >
-                Start Shopping
-              </Button>
+          {loading ? (
+            <View style={styles.skeletonContainer}>
+              <OrderCardSkeleton />
+              <OrderCardSkeleton />
+              <OrderCardSkeleton />
             </View>
           ) : (
-            <SwipeListView
-              data={filteredOrders}
-              renderItem={renderItem}
-              renderHiddenItem={renderHiddenItem}
-              rightOpenValue={-100}
-              previewRowKey={'0'}
-              previewOpenValue={-40}
-              previewOpenDelay={3000}
-              disableRightSwipe
-              keyExtractor={(item) => item.id}
-            />
+            filteredOrders.length === 0 ? (
+              <View style={styles.emptyState}>
+                <Ionicons 
+                  name="cart-outline" 
+                  size={80} 
+                  color={theme.colors.primary}
+                  style={styles.emptyIcon}
+                />
+                <Text style={styles.emptyText}>No orders found</Text>
+                <Text style={styles.emptySubtext}>
+                  Start shopping to see your orders here
+                </Text>
+                <Button 
+                  mode="contained" 
+                  onPress={() => navigation.navigate('Home')}
+                  style={styles.shopButton}
+                  labelStyle={styles.shopButtonLabel}
+                >
+                  Start Shopping
+                </Button>
+              </View>
+            ) : (
+              <SwipeListView
+                data={filteredOrders}
+                renderItem={renderItem}
+                renderHiddenItem={renderHiddenItem}
+                rightOpenValue={-100}
+                previewRowKey={'0'}
+                previewOpenValue={-40}
+                previewOpenDelay={3000}
+                disableRightSwipe
+                keyExtractor={(item) => item.id}
+              />
+            )
           )}
         </ScrollView>
 
@@ -1505,6 +1515,9 @@ const styles = StyleSheet.create({
     marginVertical: 4,
     fontWeight: 'bold',
     color: theme.colors.primary,
+  },
+  skeletonContainer: {
+    padding: 16,
   },
 });
 

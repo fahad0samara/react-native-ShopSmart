@@ -9,6 +9,7 @@ import {
   Platform,
   Animated,
   Image,
+  SafeAreaView,
 } from 'react-native';
 import {
   Text,
@@ -20,6 +21,7 @@ import {
   Chip,
 } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SPACING } from '../utils/constants';
 import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -27,10 +29,21 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { useApp } from '../context/AppContext';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 const HEADER_MAX_HEIGHT = Platform.OS === 'ios' ? 140 : 120;
 const HEADER_MIN_HEIGHT = Platform.OS === 'ios' ? 90 : 70;
 const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
+
+const getGridDimensions = () => {
+  const isPortrait = height > width;
+  const numColumns = isPortrait ? 2 : 3;
+  const spacing = SPACING.sm;
+  const totalSpacing = spacing * (numColumns + 1);
+  const cardWidth = (width - totalSpacing) / numColumns;
+  const cardHeight = cardWidth * 0.8;
+  
+  return { numColumns, cardWidth, cardHeight };
+};
 
 const CATEGORIES = [
   {
@@ -339,15 +352,23 @@ const PRODUCTS = [
   },
 ];
 
-const CategoriesScreen = () => {
+const CategoriesScreen = ({ navigation }) => {
   const theme = useTheme();
+  const [dimensions, setDimensions] = useState(getGridDimensions());
   const insets = useSafeAreaInsets();
-  const navigation = useNavigation();
   const { cartItems } = useApp();
   const [searchQuery, setSearchQuery] = useState('');
   const [favorites, setFavorites] = useState<string[]>([]);
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
   const scrollY = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const subscription = Dimensions.addEventListener('change', () => {
+      setDimensions(getGridDimensions());
+    });
+
+    return () => subscription?.remove();
+  }, []);
 
   useEffect(() => {
     StatusBar.setBarStyle('light-content');
@@ -396,213 +417,155 @@ const CategoriesScreen = () => {
     navigation.navigate('Products', { category, subcategory });
   };
 
-  const renderHeader = () => (
-    <Animated.View
-      style={[
-        styles.header,
-        {
-          height: headerHeight,
-          paddingTop: insets.top,
-        },
-      ]}
+  const renderHeader = () => {
+    return (
+      <Animated.View style={[styles.header, { height: headerHeight }]}>
+        <LinearGradient
+          colors={[COLORS.primary, COLORS.primary + 'DD']}
+          style={StyleSheet.absoluteFill}
+        />
+        <SafeAreaView style={styles.headerContent}>
+          <View style={styles.headerTop}>
+            <Text style={styles.title}>Categories</Text>
+            <TouchableOpacity 
+              style={styles.cartButton}
+              onPress={() => navigation.navigate('Cart')}
+            >
+              <MaterialCommunityIcons name="cart-outline" size={24} color="#fff" />
+              {cartItems.length > 0 && (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>{cartItems.length}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
+          <View style={styles.searchContainer}>
+            <Searchbar
+              placeholder="Search categories..."
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              style={styles.searchBar}
+              inputStyle={styles.searchInput}
+              iconColor={COLORS.textLight}
+              placeholderTextColor={COLORS.textLight}
+            />
+          </View>
+        </SafeAreaView>
+      </Animated.View>
+    );
+  };
+
+  const renderCategory = (category) => (
+    <TouchableOpacity
+      key={category.id}
+      style={styles.categoryCard}
+      onPress={() => navigateToProducts(category.name)}
+      activeOpacity={0.7}
     >
       <LinearGradient
-        colors={[COLORS.primary, COLORS.secondary]}
+        colors={[
+          category.color || COLORS.primary,
+          category.color ? category.color + '99' : COLORS.primary + '99'
+        ]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFill}
       />
-      <View style={styles.headerContent}>
-        <View style={styles.headerTop}>
-          <Animated.View
-            style={[
-              styles.headerTitleContainer,
-              { opacity: headerTitleOpacity },
-            ]}
-          >
-            <Text style={styles.headerTitle}>Categories</Text>
-          </Animated.View>
-          <View style={styles.headerActions}>
-            <IconButton
-              icon="magnify"
-              iconColor="#fff"
-              size={24}
-              onPress={() => {/* Add search action */}}
+      <LinearGradient
+        colors={['rgba(0,0,0,0.1)', 'rgba(0,0,0,0.4)']}
+        style={StyleSheet.absoluteFill}
+      />
+      <View style={styles.cardContent}>
+        <View style={styles.cardLeft}>
+          <View style={styles.iconContainer}>
+            <MaterialCommunityIcons
+              name={category.icon}
+              size={40}
+              color="#fff"
+              style={styles.cardIcon}
             />
-            <View>
-              <IconButton
-                icon="cart-outline"
-                iconColor="#fff"
-                size={24}
-                onPress={() => {/* Add cart action */}}
-              />
-              {cartItems.length > 0 && (
-                <Badge
-                  size={20}
-                  style={styles.cartBadge}
-                >
-                  {cartItems.length}
-                </Badge>
-              )}
-            </View>
+          </View>
+          <View style={styles.textContainer}>
+            <Text style={styles.categoryName}>
+              {category.name}
+            </Text>
+            {category.subcategories && (
+              <Text style={styles.itemCount}>
+                {category.subcategories.length} items
+              </Text>
+            )}
           </View>
         </View>
-
-        <View style={styles.searchContainer}>
-          <Searchbar
-            placeholder="Search categories or products"
-            onChangeText={setSearchQuery}
-            value={searchQuery}
-            style={styles.searchBar}
-            inputStyle={styles.searchInput}
-            iconColor={COLORS.primary}
-            placeholderTextColor={COLORS.textLight}
+        <View style={styles.cardRight}>
+          {category.trending && (
+            <View style={styles.trendingBadge}>
+              <MaterialCommunityIcons 
+                name="fire" 
+                size={12}
+                color="#fff" 
+              />
+              <Text style={styles.trendingText}>
+                Trending
+              </Text>
+            </View>
+          )}
+          <MaterialCommunityIcons
+            name="chevron-right"
+            size={24}
+            color="#fff"
+            style={styles.chevron}
           />
         </View>
       </View>
-    </Animated.View>
+    </TouchableOpacity>
   );
 
-  const renderCategory = (category) => (
-    <View key={category.id} style={styles.categoryCard}>
-      <TouchableOpacity
-        style={styles.categoryHeader}
-        onPress={() => toggleExpanded(category.id)}
-        activeOpacity={0.7}
+  const renderFeaturedSection = () => (
+    <View style={styles.featuredSection}>
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Featured</Text>
+        <TouchableOpacity onPress={() => {/* View all */}}>
+          <Text style={styles.viewAll}>View All</Text>
+        </TouchableOpacity>
+      </View>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.featuredScroll}
       >
-        <Image
-          source={{ uri: category.image }}
-          style={StyleSheet.absoluteFill}
-          blurRadius={3}
-        />
-        <LinearGradient
-          colors={['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.7)']}
-          style={StyleSheet.absoluteFill}
-        />
-        <View style={styles.categoryContent}>
-          <View style={styles.categoryLeft}>
-            <MaterialCommunityIcons
-              name={category.icon}
-              size={24}
-              color="#fff"
-            />
-            <Text style={styles.categoryName}>{category.name}</Text>
-          </View>
-          <View style={styles.categoryRight}>
-            {category.trending && (
-              <Chip
-                mode="outlined"
-                textStyle={styles.chipText}
-                style={styles.trendingChip}
-              >
-                Trending
-              </Chip>
-            )}
-            {category.special && (
-              <Chip
-                mode="outlined"
-                textStyle={styles.chipText}
-                style={styles.specialChip}
-              >
-                {category.special}
-              </Chip>
-            )}
-            <TouchableOpacity
-              onPress={() => toggleFavorite(category.id)}
-              style={styles.favoriteButton}
-            >
-              <MaterialCommunityIcons
-                name={favorites.includes(category.id) ? 'heart' : 'heart-outline'}
-                size={24}
-                color={favorites.includes(category.id) ? '#ff4081' : '#fff'}
-              />
-            </TouchableOpacity>
-          </View>
-        </View>
-      </TouchableOpacity>
-
-      {expandedCategory === category.id && (
-        <View style={styles.subcategoriesContainer}>
-          {category.subcategories.map((subcategory) => (
-            <TouchableOpacity
-              key={subcategory}
-              style={styles.subcategoryItem}
-              onPress={() => navigateToProducts(category.name, subcategory)}
-            >
-              <Text style={styles.subcategoryText}>{subcategory}</Text>
-              <MaterialCommunityIcons
-                name="chevron-right"
-                size={24}
-                color={COLORS.textLight}
-              />
-            </TouchableOpacity>
-          ))}
-          <Button
-            mode="contained"
-            onPress={() => navigateToProducts(category.name)}
-            style={styles.viewAllButton}
+        {PRODUCTS.slice(0, 5).map((product) => (
+          <TouchableOpacity
+            key={product.id}
+            style={styles.featuredCard}
+            onPress={() => navigateToProducts(product.category, product)}
+            activeOpacity={0.7}
           >
-            View All {category.name}
-          </Button>
-        </View>
-      )}
+            <Image source={{ uri: product.image }} style={styles.featuredImage} />
+            <LinearGradient
+              colors={['transparent', 'rgba(0,0,0,0.8)']}
+              style={styles.featuredGradient}
+            />
+            <View style={styles.featuredContent}>
+              <Text style={styles.featuredName} numberOfLines={2}>
+                {product.name}
+              </Text>
+              <View style={styles.featuredMeta}>
+                <Text style={styles.featuredPrice}>${product.price.toFixed(2)}</Text>
+                {product.originalPrice && (
+                  <Text style={styles.featuredOriginalPrice}>
+                    ${product.originalPrice.toFixed(2)}
+                  </Text>
+                )}
+              </View>
+            </View>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
     </View>
   );
 
-  const renderFeaturedDeals = () => {
-    const dealsProducts = PRODUCTS.filter(p => p.originalPrice && p.originalPrice > p.price)
-      .sort((a, b) => ((b.originalPrice! - b.price) / b.originalPrice!) - 
-        ((a.originalPrice! - a.price) / a.originalPrice!))
-      .slice(0, 5);
-
-    return (
-      <View style={styles.featuredSection}>
-        <Text style={styles.sectionTitle}>Featured Deals</Text>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.dealsContainer}
-        >
-          {dealsProducts.map((product) => {
-            const savings = ((product.originalPrice! - product.price) / product.originalPrice! * 100).toFixed(0);
-            return (
-              <TouchableOpacity
-                key={product.id}
-                style={styles.dealCard}
-                onPress={() => navigation.navigate('Products', { 
-                  category: product.category,
-                  subcategory: product.subcategory,
-                  highlightProduct: product.id
-                })}
-              >
-                <Image
-                  source={{ uri: product.image }}
-                  style={styles.dealImage}
-                />
-                <LinearGradient
-                  colors={['transparent', 'rgba(0,0,0,0.8)']}
-                  style={StyleSheet.absoluteFill}
-                />
-                <View style={styles.dealContent}>
-                  <View style={styles.savingsBadge}>
-                    <Text style={styles.savingsText}>Save {savings}%</Text>
-                  </View>
-                  <Text style={styles.dealName} numberOfLines={2}>{product.name}</Text>
-                  <View style={styles.priceContainer}>
-                    <Text style={styles.dealPrice}>${product.price.toFixed(2)}</Text>
-                    <Text style={styles.originalPrice}>${product.originalPrice.toFixed(2)}</Text>
-                  </View>
-                </View>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-      </View>
-    );
-  };
-
   return (
-    <View style={[styles.container, { paddingTop: HEADER_MAX_HEIGHT + insets.top }]}>
+    <View style={styles.container}>
       {renderHeader()}
       
       <ScrollView
@@ -614,7 +577,11 @@ const CategoriesScreen = () => {
         )}
         scrollEventThrottle={16}
       >
-        {renderFeaturedDeals()}
+        {renderFeaturedSection()}
+        
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>All Categories</Text>
+        </View>
         
         {filteredCategories.length === 0 ? (
           <View style={styles.emptyContainer}>
@@ -633,7 +600,9 @@ const CategoriesScreen = () => {
             </Button>
           </View>
         ) : (
-          filteredCategories.map(renderCategory)
+          <View style={styles.categoriesList}>
+            {filteredCategories.map(renderCategory)}
+          </View>
         )}
       </ScrollView>
     </View>
@@ -645,131 +614,259 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 20,
+  },
   header: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
-    overflow: 'hidden',
-    zIndex: 1000,
+    backgroundColor: COLORS.primary,
+    zIndex: 1,
   },
   headerContent: {
     flex: 1,
+    paddingHorizontal: SPACING.md,
+    paddingTop: Platform.OS === 'ios' ? 50 : 30,
   },
   headerTop: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: SPACING.xs,
-    height: 44,
+    height: Platform.OS === 'ios' ? 90 : 70,
   },
-  headerTitleContainer: {
-    flex: 1,
+  cartButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.3)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerTitle: {
+  badge: {
+    position: 'absolute',
+    top: -5,
+    right: -5,
+    backgroundColor: COLORS.accent,
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  badgeText: {
     color: '#fff',
-    fontSize: 20,
+    fontSize: 12,
     fontWeight: 'bold',
   },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  cartBadge: {
-    position: 'absolute',
-    top: 4,
-    right: 4,
-    backgroundColor: COLORS.accent,
+  title: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#fff',
+    textAlign: 'center',
+    flex: 1,
   },
   searchContainer: {
-    paddingHorizontal: SPACING.sm,
-    paddingVertical: SPACING.xs,
+    paddingHorizontal: SPACING.md,
+    paddingBottom: SPACING.md,
   },
   searchBar: {
     elevation: 0,
-    backgroundColor: 'rgba(255,255,255,0.95)',
+    backgroundColor: '#fff',
     borderRadius: 12,
-    height: 40,
+    height: 45,
   },
   searchInput: {
-    fontSize: 14,
+    fontSize: 16,
+    color: COLORS.text,
   },
-  scrollContent: {
-    padding: SPACING.sm,
-  },
-  categoryCard: {
+  featuredSection: {
     marginBottom: SPACING.md,
-    borderRadius: 12,
-    backgroundColor: '#fff',
-    overflow: 'hidden',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
   },
-  categoryHeader: {
-    height: 100,
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
-  categoryContent: {
+  sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingHorizontal: SPACING.md,
+    marginBottom: SPACING.sm,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: COLORS.text,
+  },
+  viewAll: {
+    color: COLORS.primary,
+    fontWeight: '600',
+  },
+  featuredScroll: {
+    paddingHorizontal: SPACING.sm,
+    gap: SPACING.sm,
+  },
+  featuredCard: {
+    width: 200,
+    height: 250,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#fff',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
+  },
+  featuredImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  featuredGradient: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  featuredContent: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     padding: SPACING.sm,
   },
-  categoryLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  categoryName: {
-    color: '#fff',
-    fontSize: 18,
+  featuredName: {
+    fontSize: 16,
     fontWeight: 'bold',
-    marginLeft: SPACING.sm,
+    color: '#fff',
+    marginBottom: 4,
+    textShadowColor: 'rgba(0,0,0,0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
-  categoryRight: {
+  featuredMeta: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.xs,
   },
-  trendingChip: {
-    backgroundColor: 'transparent',
-    borderColor: '#fff',
-  },
-  specialChip: {
-    backgroundColor: 'transparent',
-    borderColor: '#fff',
-  },
-  chipText: {
+  featuredPrice: {
+    fontSize: 18,
+    fontWeight: 'bold',
     color: '#fff',
-    fontSize: 12,
   },
-  favoriteButton: {
-    padding: 4,
+  featuredOriginalPrice: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.7)',
+    textDecorationLine: 'line-through',
   },
-  subcategoriesContainer: {
-    padding: SPACING.sm,
+  categoriesList: {
+    paddingHorizontal: SPACING.sm,
+    paddingBottom: SPACING.xl,
+  },
+  categoryCard: {
+    height: 80,
+    marginHorizontal: SPACING.sm,
+    marginVertical: SPACING.xs,
+    borderRadius: 12,
+    overflow: 'hidden',
     backgroundColor: '#fff',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
   },
-  subcategoryItem: {
+  cardContent: {
+    flex: 1,
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: SPACING.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    justifyContent: 'space-between',
+    padding: SPACING.sm,
   },
-  subcategoryText: {
+  cardLeft: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  cardRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+  },
+  iconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: SPACING.sm,
+  },
+  cardIcon: {
+    opacity: 0.95,
+    textShadowColor: 'rgba(0,0,0,0.3)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
+  },
+  textContainer: {
+    flex: 1,
+  },
+  categoryName: {
     fontSize: 16,
-    color: COLORS.text,
+    color: '#fff',
+    fontWeight: 'bold',
+    marginBottom: 4,
+    textShadowColor: 'rgba(0,0,0,0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
-  viewAllButton: {
-    marginTop: SPACING.sm,
+  itemCount: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.95)',
+    textShadowColor: 'rgba(0,0,0,0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  trendingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,59,48,0.95)',
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.xs,
+    borderRadius: 12,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.2,
+        shadowRadius: 2,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
+  },
+  trendingText: {
+    fontSize: 12,
+    color: '#fff',
+    fontWeight: 'bold',
+    marginLeft: 4,
+    textShadowColor: 'rgba(0,0,0,0.2)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  chevron: {
+    opacity: 0.8,
   },
   emptyContainer: {
     flex: 1,
@@ -785,79 +882,6 @@ const styles = StyleSheet.create({
   },
   resetButton: {
     minWidth: 120,
-  },
-  featuredSection: {
-    marginBottom: SPACING.md,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: SPACING.sm,
-    paddingHorizontal: SPACING.sm,
-    color: COLORS.text,
-  },
-  dealsContainer: {
-    paddingHorizontal: SPACING.sm,
-    gap: SPACING.sm,
-  },
-  dealCard: {
-    width: width * 0.6,
-    height: 200,
-    borderRadius: 12,
-    overflow: 'hidden',
-    backgroundColor: '#fff',
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  dealImage: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
-  dealContent: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: SPACING.sm,
-  },
-  savingsBadge: {
-    backgroundColor: COLORS.accent,
-    paddingHorizontal: SPACING.sm,
-    paddingVertical: 4,
-    borderRadius: 12,
-    alignSelf: 'flex-start',
-    marginBottom: SPACING.xs,
-  },
-  savingsText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 12,
-  },
-  dealName: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  priceContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.xs,
-  },
-  dealPrice: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  originalPrice: {
-    color: '#fff',
-    fontSize: 14,
-    textDecorationLine: 'line-through',
-    opacity: 0.7,
   },
 });
 

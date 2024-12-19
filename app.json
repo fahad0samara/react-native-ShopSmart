@@ -1,12 +1,13 @@
 {
   "expo": {
-    "name": "expo-app",
-    "slug": "expo-app",
+    "name": "Grocery App",
+    "slug": "grocery-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "scheme": "groceryapp",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -17,11 +18,11 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.fahad0.expoapp",
+      "bundleIdentifier": "com.yourcompany.groceryapp",
       "infoPlist": {
-        "NSPhotoLibraryUsageDescription": "Allow $(PRODUCT_NAME) to access your photos.",
-        "NSCameraUsageDescription": "Allow $(PRODUCT_NAME) to access your camera",
-        "NSMicrophoneUsageDescription": "Allow $(PRODUCT_NAME) to access your microphone"
+        "NSFaceIDUsageDescription": "This app uses Face ID to securely authenticate users",
+        "NSCameraUsageDescription": "This app uses the camera to scan barcodes and take product photos",
+        "NSPhotoLibraryUsageDescription": "This app requires access to the photo library to let you select product images"
       }
     },
     "android": {
@@ -29,33 +30,21 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.fahad0.expoapp",
+      "package": "com.yourcompany.groceryapp",
       "permissions": [
-        "android.permission.READ_EXTERNAL_STORAGE",
-        "android.permission.WRITE_EXTERNAL_STORAGE",
-        "android.permission.CAMERA"
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "USE_BIOMETRIC",
+        "USE_FINGERPRINT"
       ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "@config-plugins/react-native-pdf",
-      [
-        "expo-build-properties",
-        {
-          "android": {
-            "extraProguardRules": "-keep class com.shockwave.**"
-          }
-        }
-      ],
-      [
-        "expo-image-picker",
-        {
-          "photosPermission": "The app accesses your photos to let you share them with your friends.",
-          "cameraPermission": "The app accesses your camera to let you take photos to share with your friends."
-        }
-      ]
+      "expo-secure-store",
+      "expo-local-authentication"
     ]
   }
 }
