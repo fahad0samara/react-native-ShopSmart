@@ -4,12 +4,11 @@ import { useTheme } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 // Import your screen components
-import HomeScreen from '../screens/HomeScreen';
 import OrdersScreen from '../screens/OrdersScreen';
 import CartScreen from '../screens/CartScreen';
-import WishlistScreen from '../screens/WishlistScreen';
 import ProfileStack from './ProfileStack';
 import CategoriesStack from './CategoriesStack';
+import HomeStack from './HomeStack';
 
 const Tab = createBottomTabNavigator();
 
@@ -20,12 +19,19 @@ const MainTabs = () => {
     <Tab.Navigator
       screenOptions={{
         tabBarActiveTintColor: theme.colors.primary,
-        tabBarInactiveTintColor: theme.colors.backdrop,
+        tabBarInactiveTintColor: theme.colors.onSurfaceVariant,
+        tabBarStyle: {
+          backgroundColor: theme.colors.surface,
+          borderTopColor: theme.colors.outline,
+        },
+        tabBarLabelStyle: {
+          ...theme.fonts.labelMedium,
+        },
       }}
     >
       <Tab.Screen
         name="Home"
-        component={HomeScreen}
+        component={HomeStack}
         options={{
           headerShown: false,
           tabBarIcon: ({ color, size }) => (

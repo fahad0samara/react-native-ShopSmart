@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useColorScheme } from 'react-native';
 import { Product, CartItem, Category, Order, OrderItem } from '../types';
+import { lightTheme, darkTheme } from '../theme';
 import { PRODUCTS, CATEGORIES, FLASH_DEALS, NEW_ARRIVALS, POPULAR_PRODUCTS } from '../data/mockData';
 
 interface AppContextType {
@@ -25,6 +27,8 @@ interface AppContextType {
   addDeliveryInstructions: (orderId: string, instructions: string) => void;
   submitOrderRating: (orderId: string, rating: number) => void;
   updateOrderStatus: (orderId: string, status: string) => void;
+  isDarkMode: boolean;
+  toggleTheme: () => void;
 }
 
 interface Order {
@@ -47,6 +51,7 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 const CART_STORAGE_KEY = '@grocery_cart';
 const ORDERS_STORAGE_KEY = '@grocery_orders';
+const THEME_STORAGE_KEY = '@theme_preference';
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [products, setProducts] = useState<Product[]>(PRODUCTS);
@@ -57,20 +62,41 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [popularProducts] = useState<Product[]>(POPULAR_PRODUCTS);
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const systemColorScheme = useColorScheme();
 
   useEffect(() => {
+    loadThemePreference();
     loadCartItems();
     loadOrders();
     setIsLoading(false);
   }, []);
 
-  useEffect(() => {
-    saveCartItems();
-  }, [cartItems]);
+  const loadThemePreference = async () => {
+    try {
+      const savedTheme = await AsyncStorage.getItem(THEME_STORAGE_KEY);
+      if (savedTheme === 'dark') {
+        setIsDarkMode(true);
+      } else if (savedTheme === 'light') {
+        setIsDarkMode(false);
+      } else {
+        // Use system preference if no saved preference
+        setIsDarkMode(systemColorScheme === 'dark');
+      }
+    } catch (error) {
+      console.error('Error loading theme preference:', error);
+    }
+  };
 
-  useEffect(() => {
-    saveOrders();
-  }, [orders]);
+  const toggleTheme = async () => {
+    try {
+      const newTheme = !isDarkMode;
+      setIsDarkMode(newTheme);
+      await AsyncStorage.setItem(THEME_STORAGE_KEY, newTheme ? 'dark' : 'light');
+    } catch (error) {
+      console.error('Error saving theme preference:', error);
+    }
+  };
 
   const loadCartItems = async () => {
     try {
@@ -83,9 +109,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  const saveCartItems = async () => {
+  const saveCartItems = async (items: CartItem[]) => {
     try {
-      await AsyncStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cartItems));
+      await AsyncStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
     } catch (error) {
       console.error('Error saving cart:', error);
     }
@@ -128,10 +154,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setCartItems(prevItems => prevItems.filter(item => item.id !== productId));
   };
 
-  const clearCart = () => {
-    setCartItems([]);
-  };
-
   const updateCartItemQuantity = (productId: string, quantity: number) => {
     if (quantity < 1) {
       removeFromCart(productId);
@@ -145,6 +167,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           : item
       )
     );
+  };
+
+  const clearCart = () => {
+    setCartItems([]);
   };
 
   const searchProducts = (query: string) => {
@@ -257,6 +283,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
   };
 
+  useEffect(() => {
+    saveCartItems(cartItems);
+  }, [cartItems]);
+
+  useEffect(() => {
+    saveOrders();
+  }, [orders]);
+
   const value = {
     products,
     cartItems,
@@ -279,6 +313,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     addDeliveryInstructions,
     submitOrderRating,
     updateOrderStatus,
+    isDarkMode,
+    toggleTheme,
   };
 
   return (

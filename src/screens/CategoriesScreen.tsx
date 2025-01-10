@@ -19,6 +19,7 @@ import {
   useTheme,
   Badge,
   Chip,
+  Surface,
 } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Ionicons } from '@expo/vector-icons';
@@ -28,7 +29,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { useApp } from '../context/AppContext';
-import { theme } from '../utils/theme';
 
 const { width, height } = Dimensions.get('window');
 
@@ -260,77 +260,25 @@ const CategoriesScreen = ({ navigation }) => {
     });
   };
 
-  const renderHeader = () => (
-    <Animated.View style={[styles.header, { paddingTop: insets.top }]}>
-      <LinearGradient
-        colors={[theme.colors.primary, theme.colors.primaryContainer]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={[styles.headerGradient]}
-      >
-        <View style={styles.headerContent}>
-          <View style={styles.headerTop}>
-            <Text style={styles.headerTitle}>Categories</Text>
-            <View style={styles.headerActions}>
-              <IconButton
-                icon="heart-outline"
-                iconColor="#fff"
-                size={24}
-                style={styles.actionButton}
-                onPress={() => navigation.navigate('Favorites')}
-              />
-              <IconButton
-                icon="cart-outline"
-                iconColor="#fff"
-                size={24}
-                style={styles.actionButton}
-                onPress={() => navigation.navigate('Cart')}
-              >
-                {cartItems?.length > 0 && (
-                  <Badge
-                    size={16}
-                    style={styles.cartBadge}
-                  >
-                    {cartItems.length}
-                  </Badge>
-                )}
-              </IconButton>
-            </View>
-          </View>
-          <Searchbar
-            placeholder="Search categories..."
-            onChangeText={setSearchQuery}
-            value={searchQuery}
-            style={[styles.searchBar, { backgroundColor: 'rgba(255,255,255,0.9)' }]}
-            inputStyle={styles.searchInput}
-            iconColor={theme.colors.primary}
-            elevation={0}
-          />
-        </View>
-      </LinearGradient>
-    </Animated.View>
-  );
-
   const CategoryCard = ({ item }) => {
     const cardColor = item.color || theme.colors.primary;
     
     return (
       <TouchableOpacity
-        style={[
-          styles.categoryCard,
-          { 
-            backgroundColor: theme.dark ? theme.colors.elevation.level2 : '#fff',
-            borderColor: theme.colors.outline + '20',
-          },
-        ]}
+        style={styles.categoryCard}
         onPress={() => handleCategoryPress(item)}
         activeOpacity={0.7}
       >
-        <LinearGradient
-          colors={[cardColor + '15', cardColor + '05']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.cardGradient}
+        <Surface
+          style={[
+            styles.cardGradient,
+            { 
+              backgroundColor: theme.dark ? theme.colors.elevation.level2 : theme.colors.surface,
+              borderColor: theme.colors.outline,
+              borderWidth: 1,
+              elevation: theme.dark ? 0 : 2,
+            },
+          ]}
         >
           <View style={styles.cardImageContainer}>
             <View style={[styles.iconCircle, { backgroundColor: cardColor + '15' }]}>
@@ -341,20 +289,20 @@ const CategoriesScreen = ({ navigation }) => {
               />
             </View>
             {item.trending && (
-              <View style={[styles.trendingBadge]}>
-                <MaterialCommunityIcons name="trending-up" size={12} color="#fff" />
-                <Text style={styles.trendingText}>Trending</Text>
+              <View style={[styles.trendingBadge, { backgroundColor: theme.colors.error, position: 'absolute', top: 8, right: 8 }]}>
+                <MaterialCommunityIcons name="trending-up" size={12} color={theme.colors.onError} />
+                <Text style={[styles.trendingText, { color: theme.colors.onError }]}>Trending</Text>
               </View>
             )}
           </View>
 
           <View style={styles.cardContent}>
-            <Text style={[styles.categoryName]} numberOfLines={1}>
+            <Text style={[styles.categoryName, { color: theme.colors.onSurface }]} numberOfLines={1}>
               {item.name}
             </Text>
             
             {item.subcategories && (
-              <Text style={styles.itemCount}>
+              <Text style={[styles.itemCount, { color: theme.colors.onSurfaceVariant }]}>
                 {item.subcategories.length} items
               </Text>
             )}
@@ -368,41 +316,80 @@ const CategoriesScreen = ({ navigation }) => {
               </View>
             )}
           </View>
-        </LinearGradient>
+        </Surface>
       </TouchableOpacity>
     );
   };
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      {renderHeader()}
-      
+      <Animated.View style={[styles.header, { paddingTop: insets.top }]}>
+        <View style={[styles.headerGradient, { backgroundColor: theme.colors.primary }]}>
+          <View style={styles.headerContent}>
+            <View style={styles.headerTop}>
+              <Text style={[styles.headerTitle, { color: theme.colors.onPrimary }]}>Categories</Text>
+              <View style={styles.headerActions}>
+                <IconButton
+                  icon="heart-outline"
+                  iconColor="#fff"
+                  size={24}
+                  style={styles.actionButton}
+                  onPress={() => navigation.navigate('Favorites')}
+                />
+                <IconButton
+                  icon="cart-outline"
+                  iconColor="#fff"
+                  size={24}
+                  style={styles.actionButton}
+                  onPress={() => navigation.navigate('Cart')}
+                >
+                  {cartItems.length > 0 && (
+                    <Badge
+                      size={16}
+                      style={[styles.cartBadge, { backgroundColor: theme.colors.error }]}
+                    >
+                      {cartItems.length}
+                    </Badge>
+                  )}
+                </IconButton>
+              </View>
+            </View>
+            <Searchbar
+              placeholder="Search categories..."
+              onChangeText={setSearchQuery}
+              value={searchQuery}
+              style={[styles.searchBar, { 
+                backgroundColor: theme.dark ? theme.colors.elevation.level3 : 'rgba(255,255,255,0.9)',
+                borderColor: theme.colors.outline,
+              }]}
+              inputStyle={[styles.searchInput, { color: theme.colors.onSurface }]}
+              iconColor={theme.colors.primary}
+              placeholderTextColor={theme.colors.onSurfaceVariant}
+              elevation={0}
+            />
+          </View>
+        </View>
+      </Animated.View>
+
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
         {filteredCategories.length === 0 ? (
-          <View style={styles.emptyContainer}>
+          <View style={[styles.emptyContainer, { backgroundColor: theme.colors.elevation.level1 }]}>
             <MaterialCommunityIcons
               name="magnify-close"
               size={48}
-              color={theme.colors.onSurfaceDisabled}
+              color={theme.colors.onSurfaceVariant}
             />
-            <Text style={[styles.emptyText, { color: theme.colors.onSurfaceVariant }]}>
+            <Text style={[styles.emptyText, { color: theme.colors.onSurface }]}>
               No categories found
             </Text>
-            <Button
-              mode="contained"
-              onPress={() => setSearchQuery('')}
-              style={styles.resetButton}
-            >
-              Clear Search
-            </Button>
           </View>
         ) : (
           <View style={styles.categoriesGrid}>
             {filteredCategories.map((item) => (
-              <CategoryCard key={item.id} item={item} />
+              <CategoryCard key={item.name} item={item} />
             ))}
           </View>
         )}
@@ -415,149 +402,122 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  scrollContent: {
+    flexGrow: 1,
+  },
+  categoriesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: 8,
+    paddingTop: 8,
+  },
+  categoryCard: {
+    width: '50%',
+    aspectRatio: 1,
+    padding: 8,
+  },
+  cardGradient: {
+    flex: 1,
+    borderRadius: 16,
+    padding: 16,
+    justifyContent: 'space-between',
+  },
+  cardImageContainer: {
+    alignItems: 'center',
+  },
+  iconCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  trendingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  trendingText: {
+    fontSize: 12,
+    marginLeft: 4,
+    fontWeight: '500',
+  },
+  cardContent: {
+    marginTop: 12,
+  },
+  categoryName: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  itemCount: {
+    fontSize: 14,
+    opacity: 0.7,
+  },
+  specialBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  specialText: {
+    fontSize: 12,
+    marginLeft: 4,
+  },
   header: {
     width: '100%',
-    zIndex: 1000,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
+    zIndex: 1,
   },
   headerGradient: {
-    width: '100%',
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+    paddingBottom: 16,
   },
   headerContent: {
-    padding: SPACING.md,
-    paddingBottom: SPACING.xl,
+    paddingHorizontal: 16,
   },
   headerTop: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: SPACING.md,
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
   },
   headerActions: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.xs,
   },
   actionButton: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    margin: 0,
   },
   cartBadge: {
     position: 'absolute',
     top: -4,
     right: -4,
-    backgroundColor: theme.colors.error,
-  },
-  headerTitle: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#fff',
-    letterSpacing: 0.5,
   },
   searchBar: {
     borderRadius: 12,
-    height: 45,
-    marginHorizontal: SPACING.xs,
+    height: 48,
+    borderWidth: 1,
   },
   searchInput: {
     fontSize: 16,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    paddingTop: SPACING.xl,
-  },
-  categoriesGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    padding: SPACING.sm,
-    gap: SPACING.sm,
-  },
-  categoryCard: {
-    width: (width - SPACING.md * 3) / 2,
-    borderRadius: 16,
-    overflow: 'hidden',
-    borderWidth: 1,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  cardGradient: {
-    height: 160,
-  },
-  cardImageContainer: {
-    padding: SPACING.sm,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  iconCircle: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-  },
-  trendingBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FF4B4B',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    gap: 4,
-  },
-  trendingText: {
-    color: '#fff',
-    fontSize: 10,
-    fontWeight: 'bold',
-  },
-  cardContent: {
-    padding: SPACING.sm,
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    borderTopWidth: 1,
-    borderColor: 'rgba(0,0,0,0.05)',
-  },
-  categoryName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 2,
-  },
-  itemCount: {
-    fontSize: 12,
-    opacity: 0.6,
-    marginBottom: 4,
-  },
-  specialBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  specialText: {
-    fontSize: 12,
-    fontWeight: '600',
   },
   emptyContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: SPACING.xl,
-    marginTop: SPACING.xl * 2,
+    padding: 24,
+    margin: 16,
+    borderRadius: 16,
   },
   emptyText: {
     fontSize: 16,
+    marginVertical: 12,
     textAlign: 'center',
-    marginTop: SPACING.md,
-    marginBottom: SPACING.lg,
-  },
-  resetButton: {
-    minWidth: 120,
   },
 });
 

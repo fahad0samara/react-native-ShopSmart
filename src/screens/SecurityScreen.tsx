@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, Platform } from 'react-native';
-import { Text, Switch, List, useTheme, Button, Portal, Modal, TextInput } from 'react-native-paper';
+import { Text, Switch, List, useTheme, Button, Portal, Modal, TextInput, Surface, IconButton } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { COLORS } from '../utils/constants';
+import { useNavigation } from '@react-navigation/native';
 
 interface SecuritySetting {
   id: string;
@@ -17,6 +17,7 @@ interface SecuritySetting {
 
 const SecurityScreen = () => {
   const theme = useTheme();
+  const navigation = useNavigation();
   const [settings, setSettings] = useState<SecuritySetting[]>([
     {
       id: '1',
@@ -96,31 +97,43 @@ const SecurityScreen = () => {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar style="light" />
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.background }]}>
+      <StatusBar style={theme.dark ? "light" : "dark"} />
       <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Security</Text>
-        </View>
-
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          <View style={styles.securityScore}>
-            <Text style={styles.scoreTitle}>Security Score</Text>
-            <View style={styles.scoreContainer}>
-              <View style={[styles.scoreBar, { width: '75%' }]} />
-              <Text style={styles.scoreText}>75%</Text>
-            </View>
-            <Text style={styles.scoreHint}>
-              Enable two-factor authentication to improve your security score
+        <Surface style={[styles.header, { backgroundColor: theme.colors.elevation.level2 }]}>
+          <View style={styles.headerTop}>
+            <IconButton
+              icon="arrow-left"
+              size={24}
+              onPress={() => navigation.goBack()}
+              style={styles.backButton}
+            />
+            <Text variant="headlineMedium" style={[styles.headerTitle, { color: theme.colors.onSurface }]}>
+              Security
             </Text>
           </View>
+        </Surface>
 
-          <View style={styles.settingsContainer}>
+        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+          <Surface style={[styles.securityScore, { backgroundColor: theme.colors.elevation.level1 }]}>
+            <Text style={[styles.scoreTitle, { color: theme.colors.onSurface }]}>Security Score</Text>
+            <View style={styles.scoreContainer}>
+              <View style={[styles.scoreBar, { width: '75%', backgroundColor: theme.colors.primary }]} />
+              <Text style={[styles.scoreText, { color: theme.colors.onSurface }]}>75%</Text>
+            </View>
+            <Text style={[styles.scoreHint, { color: theme.colors.onSurfaceVariant }]}>
+              Enable two-factor authentication to improve your security score
+            </Text>
+          </Surface>
+
+          <Surface style={[styles.settingsContainer, { backgroundColor: theme.colors.elevation.level1 }]}>
             {settings.map((setting) => (
               <List.Item
                 key={setting.id}
                 title={setting.title}
                 description={setting.description}
+                titleStyle={{ color: theme.colors.onSurface }}
+                descriptionStyle={{ color: theme.colors.onSurfaceVariant }}
                 left={(props) => (
                   <MaterialCommunityIcons
                     {...props}
@@ -140,7 +153,7 @@ const SecurityScreen = () => {
                 style={styles.listItem}
               />
             ))}
-          </View>
+          </Surface>
 
           <View style={styles.actionsContainer}>
             <Button
@@ -164,11 +177,13 @@ const SecurityScreen = () => {
             </Button>
           </View>
 
-          <View style={styles.recentActivity}>
-            <Text style={styles.activityTitle}>Recent Activity</Text>
+          <Surface style={[styles.recentActivity, { backgroundColor: theme.colors.elevation.level1 }]}>
+            <Text style={[styles.activityTitle, { color: theme.colors.onSurface }]}>Recent Activity</Text>
             <List.Item
               title="Password Changed"
               description="2 days ago • New York, USA"
+              titleStyle={{ color: theme.colors.onSurface }}
+              descriptionStyle={{ color: theme.colors.onSurfaceVariant }}
               left={(props) => (
                 <MaterialCommunityIcons
                   {...props}
@@ -181,6 +196,8 @@ const SecurityScreen = () => {
             <List.Item
               title="New Login"
               description="5 days ago • London, UK"
+              titleStyle={{ color: theme.colors.onSurface }}
+              descriptionStyle={{ color: theme.colors.onSurfaceVariant }}
               left={(props) => (
                 <MaterialCommunityIcons
                   {...props}
@@ -190,22 +207,23 @@ const SecurityScreen = () => {
                 />
               )}
             />
-          </View>
+          </Surface>
         </ScrollView>
 
         <Portal>
           <Modal
             visible={showPasswordModal}
             onDismiss={() => setShowPasswordModal(false)}
-            contentContainerStyle={styles.modal}
+            contentContainerStyle={[styles.modal, { backgroundColor: theme.colors.elevation.level3 }]}
           >
-            <Text style={styles.modalTitle}>Change Password</Text>
+            <Text style={[styles.modalTitle, { color: theme.colors.onSurface }]}>Change Password</Text>
             <TextInput
               label="Current Password"
               value={currentPassword}
               onChangeText={setCurrentPassword}
               secureTextEntry
-              style={styles.input}
+              style={[styles.input, { backgroundColor: theme.colors.elevation.level1 }]}
+              textColor={theme.colors.onSurface}
               mode="outlined"
             />
             <TextInput
@@ -213,7 +231,8 @@ const SecurityScreen = () => {
               value={newPassword}
               onChangeText={setNewPassword}
               secureTextEntry
-              style={styles.input}
+              style={[styles.input, { backgroundColor: theme.colors.elevation.level1 }]}
+              textColor={theme.colors.onSurface}
               mode="outlined"
             />
             <TextInput
@@ -221,41 +240,37 @@ const SecurityScreen = () => {
               value={confirmPassword}
               onChangeText={setConfirmPassword}
               secureTextEntry
-              style={styles.input}
+              style={[styles.input, { backgroundColor: theme.colors.elevation.level1 }]}
+              textColor={theme.colors.onSurface}
               mode="outlined"
             />
-            <Button
-              mode="contained"
-              onPress={handlePasswordChange}
-              style={styles.modalButton}
-            >
-              Change Password
-            </Button>
+            <View style={styles.modalActions}>
+              <Button mode="contained" onPress={handlePasswordChange}>
+                Update Password
+              </Button>
+              <Button mode="outlined" onPress={() => setShowPasswordModal(false)}>
+                Cancel
+              </Button>
+            </View>
           </Modal>
 
           <Modal
             visible={showTwoFactorModal}
             onDismiss={() => setShowTwoFactorModal(false)}
-            contentContainerStyle={styles.modal}
+            contentContainerStyle={[styles.modal, { backgroundColor: theme.colors.elevation.level3 }]}
           >
-            <Text style={styles.modalTitle}>Setup Two-Factor Authentication</Text>
-            <Text style={styles.modalDescription}>
-              Two-factor authentication adds an extra layer of security to your account.
-              We'll send you a verification code via SMS when you sign in.
+            <Text style={[styles.modalTitle, { color: theme.colors.onSurface }]}>Setup Two-Factor Authentication</Text>
+            <Text style={[styles.modalText, { color: theme.colors.onSurfaceVariant }]}>
+              Two-factor authentication adds an extra layer of security to your account. We'll send a verification code to your email or phone number when you sign in.
             </Text>
-            <TextInput
-              label="Phone Number"
-              keyboardType="phone-pad"
-              style={styles.input}
-              mode="outlined"
-            />
-            <Button
-              mode="contained"
-              onPress={handleTwoFactorSetup}
-              style={styles.modalButton}
-            >
-              Enable Two-Factor Authentication
-            </Button>
+            <View style={styles.modalActions}>
+              <Button mode="contained" onPress={handleTwoFactorSetup}>
+                Enable
+              </Button>
+              <Button mode="outlined" onPress={() => setShowTwoFactorModal(false)}>
+                Cancel
+              </Button>
+            </View>
           </Modal>
         </Portal>
       </View>
@@ -266,60 +281,41 @@ const SecurityScreen = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#fff',
   },
   container: {
     flex: 1,
   },
   header: {
     padding: 16,
-    backgroundColor: '#fff',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 4,
-      },
-    }),
+  },
+  headerTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  backButton: {
+    marginRight: 16,
   },
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#1a1a1a',
   },
   content: {
     flex: 1,
     padding: 16,
   },
   securityScore: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
     padding: 16,
-    marginBottom: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
+    borderRadius: 12,
+    marginBottom: 24,
   },
   scoreTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 12,
+    marginBottom: 16,
   },
   scoreContainer: {
     height: 8,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
     borderRadius: 4,
     marginBottom: 8,
     position: 'relative',
@@ -327,37 +323,21 @@ const styles = StyleSheet.create({
   scoreBar: {
     position: 'absolute',
     height: '100%',
-    backgroundColor: COLORS.primary,
     borderRadius: 4,
   },
   scoreText: {
-    position: 'absolute',
-    right: 0,
-    top: -20,
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: 'bold',
-    color: COLORS.primary,
+    marginTop: 8,
   },
   scoreHint: {
     fontSize: 14,
-    color: '#666',
+    marginTop: 8,
   },
   settingsContainer: {
-    backgroundColor: '#fff',
     borderRadius: 12,
+    marginBottom: 24,
     overflow: 'hidden',
-    marginBottom: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
   },
   listItem: {
     paddingVertical: 8,
@@ -366,35 +346,22 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   actionsContainer: {
-    marginBottom: 16,
+    marginBottom: 24,
   },
   actionButton: {
-    marginBottom: 8,
+    marginBottom: 12,
   },
   recentActivity: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
     padding: 16,
-    marginBottom: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
+    borderRadius: 12,
+    marginBottom: 24,
   },
   activityTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 12,
+    marginBottom: 16,
   },
   modal: {
-    backgroundColor: '#fff',
     margin: 20,
     borderRadius: 12,
     padding: 20,
@@ -404,16 +371,18 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 16,
   },
-  modalDescription: {
+  modalText: {
     fontSize: 14,
-    color: '#666',
     marginBottom: 16,
+    lineHeight: 20,
   },
   input: {
-    marginBottom: 12,
+    marginBottom: 16,
   },
-  modalButton: {
-    marginTop: 8,
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 16,
   },
 });
 

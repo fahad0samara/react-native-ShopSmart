@@ -5,28 +5,18 @@ import {
   ScrollView,
   TouchableOpacity,
   Platform,
-  StatusBar,
   Image,
-  Modal,
 } from 'react-native';
-import { Text, Surface, Button, IconButton } from 'react-native-paper';
+import { Text, Surface, Button, IconButton, useTheme, Portal, Modal as PaperModal } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useApp } from '../context/AppContext';
 import * as Haptics from 'expo-haptics';
-
-const COLORS = {
-  primary: '#00B761',
-  background: '#F5F5F5',
-  surface: '#FFFFFF',
-  text: '#333333',
-  textLight: '#666666',
-  border: '#EEEEEE',
-  overlay: 'rgba(0, 0, 0, 0.5)',
-};
+import { StatusBar } from 'expo-status-bar';
 
 const CartScreen = () => {
+  const theme = useTheme();
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const { 
@@ -78,11 +68,21 @@ const CartScreen = () => {
   const total = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <StatusBar barStyle="dark-content" />
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <StatusBar style={theme.dark ? "light" : "dark"} />
       
-      <Surface style={styles.header}>
-        <Text style={styles.headerTitle}>Shopping Cart</Text>
+      <Surface style={[styles.header, { backgroundColor: theme.colors.elevation.level2 }]}>
+        <View style={styles.headerContent}>
+          <IconButton
+            icon="arrow-left"
+            size={24}
+            onPress={() => navigation.goBack()}
+            style={styles.backButton}
+          />
+          <Text variant="headlineMedium" style={[styles.headerTitle, { color: theme.colors.onSurface }]}>
+            Shopping Cart
+          </Text>
+        </View>
       </Surface>
 
       <ScrollView
@@ -91,44 +91,79 @@ const CartScreen = () => {
         contentContainerStyle={styles.scrollContent}
       >
         {cartItems.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <MaterialCommunityIcons name="cart-outline" size={64} color={COLORS.textLight} />
-            <Text style={styles.emptyText}>Your cart is empty</Text>
-            <TouchableOpacity
-              style={styles.shopButton}
-              onPress={() => navigation.navigate('Home' as never)}
+          <Surface style={[styles.emptyContainer, { backgroundColor: theme.colors.elevation.level1 }]}>
+            <MaterialCommunityIcons 
+              name="cart-outline" 
+              size={64} 
+              color={theme.colors.primary} 
+            />
+            <Text 
+              variant="titleLarge" 
+              style={[styles.emptyText, { color: theme.colors.onSurface }]}
             >
-              <Text style={styles.shopButtonText}>Start Shopping</Text>
-            </TouchableOpacity>
-          </View>
+              Your cart is empty
+            </Text>
+            <Button
+              mode="contained"
+              onPress={() => navigation.navigate('Home' as never)}
+              style={styles.shopButton}
+            >
+              Start Shopping
+            </Button>
+          </Surface>
         ) : (
           cartItems.map((item) => (
-            <Surface key={item.id} style={styles.cartItemCard}>
-              <Image source={{ uri: item.image }} style={styles.itemImage} />
+            <Surface 
+              key={item.id} 
+              style={[styles.cartItemCard, { backgroundColor: theme.colors.elevation.level1 }]}
+              elevation={1}
+            >
+              <View style={[styles.itemImage, { backgroundColor: 'rgba(0,0,0,0.05)'}]}>
+                {typeof item.image === 'number' ? (
+                  <Image source={item.image} style={styles.image} />
+                ) : (
+                  <Image source={{ uri: item.image }} style={styles.image} />
+                )}
+              </View>
               <View style={styles.itemDetails}>
                 <View style={styles.itemHeader}>
-                  <Text style={styles.itemName}>{item.name}</Text>
-                  <TouchableOpacity
-                    onPress={() => handleRemoveItem(item.id)}
-                    style={styles.removeButton}
+                  <Text 
+                    variant="titleMedium" 
+                    style={[styles.itemName, { color: theme.colors.onSurface }]}
                   >
-                    <MaterialCommunityIcons name="close" size={20} color={COLORS.textLight} />
-                  </TouchableOpacity>
+                    {item.name}
+                  </Text>
+                  <IconButton
+                    icon="close"
+                    size={20}
+                    onPress={() => handleRemoveItem(item.id)}
+                    iconColor={theme.colors.error}
+                  />
                 </View>
-                <Text style={styles.itemPrice}>${item.price.toFixed(2)}</Text>
+                <Text 
+                  variant="titleMedium" 
+                  style={[styles.itemPrice, { color: theme.colors.primary }]}
+                >
+                  ${item.price.toFixed(2)}
+                </Text>
                 <View style={styles.quantityContainer}>
                   <IconButton
                     icon="minus"
                     size={20}
                     onPress={() => handleQuantityChange(item.id, false)}
-                    style={styles.quantityButton}
+                    mode="contained-tonal"
                   />
-                  <Text style={styles.quantity}>{item.quantity}</Text>
+                  <Text 
+                    variant="titleMedium" 
+                    style={[styles.quantity, { color: theme.colors.onSurface }]}
+                  >
+                    {item.quantity}
+                  </Text>
                   <IconButton
                     icon="plus"
                     size={20}
                     onPress={() => handleQuantityChange(item.id, true)}
-                    style={styles.quantityButton}
+                    mode="contained-tonal"
                   />
                 </View>
               </View>
@@ -138,10 +173,26 @@ const CartScreen = () => {
       </ScrollView>
 
       {cartItems.length > 0 && (
-        <Surface style={[styles.footer, { paddingBottom: insets.bottom || 16 }]}>
+        <Surface 
+          style={[styles.footer, { 
+            backgroundColor: theme.colors.elevation.level2,
+            paddingBottom: insets.bottom || 16 
+          }]}
+          elevation={4}
+        >
           <View style={styles.totalContainer}>
-            <Text style={styles.totalLabel}>Total Amount</Text>
-            <Text style={styles.totalAmount}>${total.toFixed(2)}</Text>
+            <Text 
+              variant="titleLarge" 
+              style={[styles.totalLabel, { color: theme.colors.onSurface }]}
+            >
+              Total Amount
+            </Text>
+            <Text 
+              variant="headlineSmall" 
+              style={[styles.totalAmount, { color: theme.colors.primary }]}
+            >
+              ${total.toFixed(2)}
+            </Text>
           </View>
           <View style={styles.buttonContainer}>
             <Button
@@ -164,44 +215,65 @@ const CartScreen = () => {
         </Surface>
       )}
 
-      <Modal
-        visible={showPaymentModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowPaymentModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <Surface style={[styles.modalContent, { paddingBottom: insets.bottom || 16 }]}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select Payment Method</Text>
-              <IconButton
-                icon="close"
-                size={24}
-                onPress={() => setShowPaymentModal(false)}
-              />
-            </View>
-            {paymentMethods.map((method) => (
+      <Portal>
+        <PaperModal
+          visible={showPaymentModal}
+          onDismiss={() => setShowPaymentModal(false)}
+          contentContainerStyle={[
+            styles.modalContent, 
+            { 
+              backgroundColor: theme.colors.elevation.level3,
+              paddingBottom: insets.bottom || 16 
+            }
+          ]}
+        >
+          <View style={styles.modalHeader}>
+            <Text 
+              variant="titleLarge" 
+              style={[styles.modalTitle, { color: theme.colors.onSurface }]}
+            >
+              Select Payment Method
+            </Text>
+            <IconButton
+              icon="close"
+              size={24}
+              onPress={() => setShowPaymentModal(false)}
+              iconColor={theme.colors.onSurfaceVariant}
+            />
+          </View>
+          {paymentMethods.map((method) => (
+            <Surface
+              key={method.id}
+              style={[styles.paymentOption, { backgroundColor: theme.colors.elevation.level1 }]}
+              elevation={1}
+            >
               <TouchableOpacity
-                key={method.id}
-                style={styles.paymentOption}
+                style={styles.paymentOptionContent}
                 onPress={() => handleSelectPayment(method.id)}
               >
-                <MaterialCommunityIcons
-                  name={method.icon}
-                  size={24}
-                  color={COLORS.text}
-                />
-                <Text style={styles.paymentLabel}>{method.label}</Text>
+                <View style={styles.paymentLeft}>
+                  <MaterialCommunityIcons
+                    name={method.icon}
+                    size={24}
+                    color={theme.colors.primary}
+                  />
+                  <Text 
+                    variant="titleMedium" 
+                    style={[styles.paymentLabel, { color: theme.colors.onSurface }]}
+                  >
+                    {method.label}
+                  </Text>
+                </View>
                 <MaterialCommunityIcons
                   name="chevron-right"
                   size={24}
-                  color={COLORS.textLight}
+                  color={theme.colors.onSurfaceVariant}
                 />
               </TouchableOpacity>
-            ))}
-          </Surface>
-        </View>
-      </Modal>
+            </Surface>
+          ))}
+        </PaperModal>
+      </Portal>
     </View>
   );
 };
@@ -209,81 +281,56 @@ const CartScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
   },
   header: {
-    backgroundColor: COLORS.surface,
-    padding: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 4,
-      },
-    }),
+    paddingTop: Platform.OS === 'ios' ? 44 : 0,
+    paddingBottom: 8,
+  },
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  backButton: {
+    marginRight: 8,
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: Platform.OS === 'ios' ? '600' : 'bold',
-    color: COLORS.text,
+    fontWeight: 'bold',
   },
   content: {
     flex: 1,
   },
   scrollContent: {
     padding: 16,
-    paddingBottom: 32,
   },
   emptyContainer: {
-    flex: 1,
+    padding: 24,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 64,
+    marginVertical: 16,
   },
   emptyText: {
-    fontSize: 18,
-    color: COLORS.textLight,
-    marginTop: 16,
+    marginVertical: 16,
   },
   shopButton: {
-    backgroundColor: COLORS.primary,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
     marginTop: 16,
-  },
-  shopButtonText: {
-    color: COLORS.surface,
-    fontSize: 16,
-    fontWeight: '500',
   },
   cartItemCard: {
     flexDirection: 'row',
-    backgroundColor: COLORS.surface,
-    borderRadius: 16,
-    marginBottom: 16,
+    borderRadius: 12,
     padding: 12,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
+    marginBottom: 16,
   },
   itemImage: {
     width: 80,
     height: 80,
     borderRadius: 8,
-    backgroundColor: COLORS.background,
+  },
+  image: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 8,
   },
   itemDetails: {
     flex: 1,
@@ -295,41 +342,24 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   itemName: {
-    fontSize: 16,
-    color: COLORS.text,
-    marginBottom: 4,
     flex: 1,
-  },
-  removeButton: {
-    padding: 4,
+    marginRight: 8,
   },
   itemPrice: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: COLORS.primary,
-    marginBottom: 8,
+    marginVertical: 4,
   },
   quantityContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.background,
-    alignSelf: 'flex-start',
-    borderRadius: 8,
-    padding: 4,
-  },
-  quantityButton: {
-    margin: 0,
+    marginTop: 8,
   },
   quantity: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginHorizontal: 12,
+    marginHorizontal: 16,
   },
   footer: {
-    backgroundColor: COLORS.surface,
     padding: 16,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
   },
   totalContainer: {
     flexDirection: 'row',
@@ -337,69 +367,41 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
   },
-  totalLabel: {
-    fontSize: 16,
-    color: COLORS.textLight,
-  },
-  totalAmount: {
-    fontSize: 24,
-    fontWeight: Platform.OS === 'ios' ? '600' : 'bold',
-    color: COLORS.primary,
-  },
   buttonContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 16,
+    gap: 12,
   },
   button: {
     flex: 1,
-    marginHorizontal: 4,
-    borderRadius: 12,
-  },
-  continueButton: {
-    borderColor: COLORS.primary,
-  },
-  checkoutButton: {
-    backgroundColor: COLORS.primary,
   },
   buttonContent: {
-    height: 48,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: COLORS.overlay,
-    justifyContent: 'flex-end',
+    paddingVertical: 8,
   },
   modalContent: {
-    backgroundColor: COLORS.surface,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 16,
+    margin: 20,
+    borderRadius: 20,
+    padding: 20,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: COLORS.text,
+    marginBottom: 20,
   },
   paymentOption: {
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  paymentOptionContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    justifyContent: 'space-between',
+    padding: 16,
   },
-  paymentLabel: {
-    fontSize: 16,
-    color: COLORS.text,
-    marginLeft: 16,
-    flex: 1,
+  paymentLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
 });
 

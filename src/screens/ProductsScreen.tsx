@@ -161,7 +161,11 @@ const ProductsScreen = () => {
     return (
       <Animated.View style={[styles.header, { height: headerHeight }]}>
         <LinearGradient
-          colors={[color || theme.colors.primary, theme.colors.primaryContainer, theme.colors.background]}
+          colors={[
+            color || theme.colors.primary, 
+            theme.dark ? theme.colors.elevation.level2 : theme.colors.primaryContainer, 
+            theme.colors.background
+          ]}
           start={{ x: 0, y: 0 }}
           end={{ x: 0, y: 1 }}
           style={[styles.headerGradient]}
@@ -171,22 +175,24 @@ const ProductsScreen = () => {
               <View style={styles.headerLeft}>
                 <IconButton
                   icon="arrow-left"
-                  iconColor="#fff"
+                  iconColor={theme.colors.onPrimary}
                   size={24}
                   style={styles.backButton}
                   onPress={() => navigation.goBack()}
                 />
                 <View>
-                  <Text style={styles.headerTitle}>{category}</Text>
+                  <Text style={[styles.headerTitle, { color: theme.colors.onPrimary }]}>{category}</Text>
                   {selectedSubcategory && (
-                    <Text style={styles.headerSubtitle}>{selectedSubcategory}</Text>
+                    <Text style={[styles.headerSubtitle, { color: theme.colors.onPrimary }]}>
+                      {selectedSubcategory}
+                    </Text>
                   )}
                 </View>
               </View>
               <View style={styles.headerActions}>
                 <IconButton
                   icon={viewType === 'grid' ? 'view-list' : 'view-grid'}
-                  iconColor="#fff"
+                  iconColor={theme.colors.onPrimary}
                   size={24}
                   style={styles.actionButton}
                   onPress={() => {
@@ -196,7 +202,7 @@ const ProductsScreen = () => {
                 />
                 <IconButton
                   icon="sort"
-                  iconColor="#fff"
+                  iconColor={theme.colors.onPrimary}
                   size={24}
                   style={styles.actionButton}
                   onPress={() => {
@@ -206,7 +212,7 @@ const ProductsScreen = () => {
                 />
                 <IconButton
                   icon="filter-variant"
-                  iconColor="#fff"
+                  iconColor={theme.colors.onPrimary}
                   size={24}
                   style={styles.actionButton}
                   onPress={() => {
@@ -219,12 +225,18 @@ const ProductsScreen = () => {
             <View style={styles.searchContainer}>
               <Searchbar
                 placeholder="Search products..."
-                onChangeText={setSearchQuery}
                 value={searchQuery}
-                style={styles.searchBar}
-                inputStyle={styles.searchInput}
+                onChangeText={setSearchQuery}
+                style={[
+                  styles.searchBar,
+                  { 
+                    backgroundColor: theme.dark ? theme.colors.elevation.level3 : 'rgba(255,255,255,0.9)',
+                    borderColor: theme.colors.outline
+                  }
+                ]}
+                inputStyle={[styles.searchInput, { color: theme.colors.onSurface }]}
+                placeholderTextColor={theme.colors.onSurfaceVariant}
                 iconColor={theme.colors.primary}
-                elevation={0}
               />
             </View>
           </View>
@@ -242,7 +254,8 @@ const ProductsScreen = () => {
         <Card
           style={[
             styles.productCard,
-            viewType === 'list' && styles.productCardList
+            viewType === 'list' && styles.productCardList,
+            { backgroundColor: theme.dark ? theme.colors.elevation.level1 : theme.colors.surface }
           ]}
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -250,102 +263,101 @@ const ProductsScreen = () => {
           }}
           mode="elevated"
         >
-          <View style={[
-            styles.imageContainer,
-            viewType === 'list' && styles.imageContainerList
-          ]}>
-            <Image 
-              source={item.image || { uri: 'https://placehold.co/400x400/png' }}
-              style={styles.productImage}
-              resizeMode="cover"
-            />
-            <TouchableOpacity
-              style={styles.favoriteButton}
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                if (isFavorite) {
-                  setFavorites(favorites.filter(id => id !== item.id));
-                } else {
-                  setFavorites([...favorites, item.id]);
-                }
-              }}
-            >
-              <MaterialCommunityIcons
-                name={isFavorite ? 'heart' : 'heart-outline'}
-                size={20}
-                color={isFavorite ? theme.colors.error : theme.colors.backdrop}
+          <View style={styles.cardInner}>
+            <View style={[
+              styles.imageContainer,
+              viewType === 'list' && styles.imageContainerList,
+              { backgroundColor: theme.dark ? theme.colors.elevation.level2 : theme.colors.surfaceVariant }
+            ]}>
+              <Image 
+                source={item.image || { uri: 'https://placehold.co/400x400/png' }}
+                style={styles.productImage}
+                resizeMode="cover"
               />
-            </TouchableOpacity>
-          </View>
-
-          <Card.Content style={styles.cardContent}>
-            <Text style={[styles.productName, { color: theme.colors.onSurface }]} numberOfLines={2}>
-              {item.name}
-            </Text>
-            <Text style={[styles.productPrice, { color: theme.colors.primary }]}>
-              ${item.price.toFixed(2)}
-            </Text>
-            {item.rating && (
-              <View style={styles.ratingContainer}>
+              <TouchableOpacity
+                style={[styles.favoriteButton, { 
+                  backgroundColor: theme.dark ? theme.colors.elevation.level3 + '80' : theme.colors.surface + '80' 
+                }]}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  if (isFavorite) {
+                    setFavorites(favorites.filter(id => id !== item.id));
+                  } else {
+                    setFavorites([...favorites, item.id]);
+                  }
+                }}
+              >
                 <MaterialCommunityIcons
-                  name="star"
-                  size={16}
-                  color={theme.colors.primary}
+                  name={isFavorite ? 'heart' : 'heart-outline'}
+                  size={20}
+                  color={isFavorite ? theme.colors.error : theme.colors.onSurfaceVariant}
                 />
-                <Text style={[styles.ratingText, { color: theme.colors.onSurface }]}>
-                  {item.rating.toFixed(1)}
-                </Text>
-                {item.reviews && (
-                  <Text style={[styles.reviewCount, { color: theme.colors.onSurfaceVariant }]}>
-                    ({item.reviews} reviews)
+              </TouchableOpacity>
+            </View>
+
+            <Card.Content style={styles.cardContent}>
+              <Text style={[styles.productName, { color: theme.colors.onSurface }]} numberOfLines={2}>
+                {item.name}
+              </Text>
+              <Text style={[styles.productPrice, { color: theme.colors.primary }]}>
+                ${item.price.toFixed(2)}
+              </Text>
+              {item.rating && (
+                <View style={styles.ratingContainer}>
+                  <MaterialCommunityIcons
+                    name="star"
+                    size={16}
+                    color={theme.colors.primary}
+                  />
+                  <Text style={[styles.ratingText, { color: theme.colors.onSurface }]}>
+                    {item.rating.toFixed(1)}
                   </Text>
-                )}
-              </View>
-            )}
-            <Button
-              mode={isInCart ? "outlined" : "contained"}
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                if (isInCart) {
-                  removeFromCart(item.id);
-                } else {
-                  addToCart(item);
-                }
-              }}
-              style={[styles.addButton, { marginTop: SPACING.sm }]}
-              icon={isInCart ? "cart-off" : "cart-plus"}
-              contentStyle={{ height: 40 }}
-            >
-              {isInCart ? "Remove" : "Add to Cart"}
-            </Button>
-          </Card.Content>
+                  {item.reviews && (
+                    <Text style={[styles.reviewCount, { color: theme.colors.onSurfaceVariant }]}>
+                      ({item.reviews} reviews)
+                    </Text>
+                  )}
+                </View>
+              )}
+              <Button
+                mode={isInCart ? "outlined" : "contained"}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  if (isInCart) {
+                    removeFromCart(item.id);
+                  } else {
+                    addToCart(item);
+                  }
+                }}
+                style={[styles.addButton, { marginTop: SPACING.sm }]}
+                icon={isInCart ? "cart-off" : "cart-plus"}
+                contentStyle={{ height: 40 }}
+              >
+                {isInCart ? "Remove" : "Add to Cart"}
+              </Button>
+            </Card.Content>
+          </View>
         </Card>
       </View>
     );
   };
 
   const renderEmptyState = () => (
-    <View style={styles.emptyContainer}>
+    <View style={[styles.emptyContainer, { backgroundColor: theme.colors.elevation.level1 }]}>
       <MaterialCommunityIcons
-        name="shopping-outline"
+        name="package-variant"
         size={64}
-        color={theme.colors.onSurfaceDisabled}
+        color={theme.colors.onSurfaceVariant}
       />
-      <Text style={styles.emptyTitle}>No Products Found</Text>
-      <Text style={styles.emptyText}>
-        Try adjusting your search or filters to find what you're looking for
+      <Text style={[styles.emptyText, { color: theme.colors.onSurface }]}>
+        No products found
       </Text>
       <Button
         mode="contained"
-        onPress={() => {
-          setSearchQuery('');
-          setSelectedBrands([]);
-          setPriceRange([0, 100]);
-          setSortBy('price');
-        }}
-        style={styles.resetButton}
+        onPress={() => navigation.goBack()}
+        style={styles.browseButton}
       >
-        Reset Filters
+        Browse Categories
       </Button>
     </View>
   );
@@ -528,63 +540,49 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.xs,
   },
   cardContainer: {
-    flex: 1,
-    maxWidth: width > 768 ? (width - SPACING.md * 4) / 3 : (width - SPACING.md * 3) / 2,
-    marginBottom: SPACING.md,
-    borderRadius: 12,
-    backgroundColor: theme.colors.surface,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.15,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 4,
-      },
-    }),
+    padding: SPACING.xs,
+    width: '50%',
   },
   cardContainerList: {
-    maxWidth: '100%',
-    flexDirection: 'row',
-    height: 120,
-    marginHorizontal: SPACING.sm,
+    width: '100%',
   },
   productCard: {
     flex: 1,
+    margin: 8,
     borderRadius: 12,
-    overflow: 'hidden',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
   },
   productCardList: {
     flexDirection: 'row',
-    height: 120,
+  },
+  cardInner: {
+    overflow: 'hidden',
+    borderRadius: 12,
   },
   imageContainer: {
-    position: 'relative',
     aspectRatio: 1,
-    backgroundColor: theme.colors.surfaceVariant,
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
     overflow: 'hidden',
+    borderRadius: 12,
   },
   imageContainerList: {
-    width: 120,
     aspectRatio: 1,
-    borderTopRightRadius: 0,
-    borderBottomLeftRadius: 12,
+    width: 120,
   },
   productImage: {
     width: '100%',
     height: '100%',
-    resizeMode: 'cover',
-    backgroundColor: theme.colors.surfaceVariant,
   },
   favoriteButton: {
     position: 'absolute',
     top: SPACING.xs,
     right: SPACING.xs,
-    backgroundColor: 'rgba(255,255,255,0.95)',
     borderRadius: 20,
     padding: SPACING.xs,
     zIndex: 1,
@@ -592,34 +590,29 @@ const styles = StyleSheet.create({
   cardContent: {
     padding: SPACING.sm,
     gap: SPACING.xs,
-    flex: 1,
   },
   productName: {
-    fontSize: 14,
-    fontWeight: '500',
-    marginBottom: 4,
-    lineHeight: 20,
+    fontSize: 16,
+    fontWeight: '600',
   },
   productPrice: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 4,
   },
   ratingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
-    gap: 4,
+    gap: SPACING.xs,
   },
   ratingText: {
     fontSize: 14,
     fontWeight: '500',
   },
   reviewCount: {
-    fontSize: 12,
+    fontSize: 14,
   },
   addButton: {
-    marginTop: SPACING.xs,
+    borderRadius: 8,
   },
   emptyContainer: {
     flex: 1,

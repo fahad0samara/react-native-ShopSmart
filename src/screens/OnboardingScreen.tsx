@@ -1,355 +1,556 @@
 import React, { useRef, useState, useEffect } from 'react';
 import {
   View,
+  Text,
   StyleSheet,
   Dimensions,
-  Animated,
-  FlatList,
   TouchableOpacity,
   Platform,
+  StatusBar,
+  FlatList,
+  Animated,
 } from 'react-native';
-import { Text, Button, useTheme, IconButton } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Haptics from 'expo-haptics';
-import { LinearGradient } from 'expo-linear-gradient';
 import * as Animatable from 'react-native-animatable';
-import LoadingOverlay from '../components/LoadingOverlay';
+import { LinearGradient } from 'expo-linear-gradient';
+import * as Haptics from 'expo-haptics';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useNavigation } from '@react-navigation/native';
 
 const { width, height } = Dimensions.get('window');
+const scale = Math.min(width, height) / 375;
+
+const scaledSize = (size: number) => Math.round(size * scale);
+
+const AnimatedFlatList = Animated.createAnimatedComponent(FlatList);
 
 const slides = [
   {
     id: '1',
-    title: 'Welcome to GroceryApp',
-    description: 'Your one-stop shop for all your grocery needs',
-    icon: 'shopping',
-    color: '#4CAF50',
+    title: 'Welcome to Our App',
+    description: 'Discover amazing features and possibilities',
+    icon: 'rocket',
+    secondaryIcon: 'star',
+    features: [
+      'Fast and reliable',
+      'Easy to use',
+      'Secure and private'
+    ],
   },
   {
     id: '2',
-    title: 'Easy Shopping',
-    description: 'Browse through categories and add items to your cart',
-    icon: 'cart',
-    color: '#2196F3',
+    title: 'Smart Features',
+    description: 'Experience the power of intelligent technology',
+    icon: 'brain',
+    secondaryIcon: 'lightning-bolt',
+    features: [
+      'AI-powered solutions',
+      'Real-time updates',
+      'Smart notifications'
+    ],
   },
   {
     id: '3',
-    title: 'Fast Delivery',
-    description: 'Get your groceries delivered right to your doorstep',
-    icon: 'truck-delivery',
-    color: '#FF9800',
-  },
-  {
-    id: '4',
-    title: 'Save & Reorder',
-    description: 'Save your favorite items and reorder with one tap',
-    icon: 'heart',
-    color: '#E91E63',
-  },
-  {
-    id: '5',
-    title: 'Secure Payments',
-    description: 'Multiple payment options for your convenience',
-    icon: 'credit-card',
-    color: '#9C27B0',
+    title: 'Get Started',
+    description: 'Join us and start your journey today',
+    icon: 'flag-checkered',
+    secondaryIcon: 'check-circle',
+    features: [
+      'Quick setup',
+      'Personalized experience',
+      'Ready to go'
+    ],
   },
 ];
 
-const OnboardingScreen = ({ navigation }) => {
-  const theme = useTheme();
+const OnboardingScreen = () => {
+  const navigation = useNavigation();
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [showSwipeHint, setShowSwipeHint] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
-  const [loadingMessage, setLoadingMessage] = useState('');
+  const flatListRef = useRef(null);
   const scrollX = useRef(new Animated.Value(0)).current;
-  const slidesRef = useRef(null);
-  const [isLastSlide, setIsLastSlide] = useState(false);
-  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const swipeHintAnim = useRef(new Animated.Value(1)).current;
+  const fadeAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 1000,
-      useNativeDriver: true,
-    }).start();
+    checkOnboardingStatus();
   }, []);
 
-  const viewableItemsChanged = useRef(({ viewableItems }) => {
-    if (viewableItems[0]) {
-      setCurrentIndex(viewableItems[0].index);
-      setIsLastSlide(viewableItems[0].index === slides.length - 1);
-      Haptics.selectionAsync();
-    }
-  }).current;
-
-  const viewConfig = useRef({ viewAreaCoveragePercentThreshold: 50 }).current;
-
-  const scrollTo = async () => {
-    if (currentIndex < slides.length - 1) {
-      slidesRef.current?.scrollToIndex({ index: currentIndex + 1 });
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    } else {
-      try {
-        setIsLoading(true);
-        setLoadingMessage('Preparing your experience...');
-        await AsyncStorage.setItem('@onboarding_complete', 'true');
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        await new Promise(resolve => setTimeout(resolve, 1000));
+  const checkOnboardingStatus = async () => {
+    try {
+      const value = await AsyncStorage.getItem('@onboarding_completed');
+      if (value === 'true') {
         navigation.replace('Login');
-      } catch (err) {
-        console.log('Error @setItem: ', err);
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      } finally {
-        setIsLoading(false);
       }
+    } catch (error) {
+      console.error('Error checking onboarding status:', error);
     }
   };
 
-  const skip = async () => {
+  const completeOnboarding = async () => {
+    if (isLoading) return;
+    
+    setIsLoading(true);
     try {
-      setIsLoading(true);
-      setLoadingMessage('Skipping onboarding...');
-      await AsyncStorage.setItem('@onboarding_complete', 'true');
+      await AsyncStorage.setItem('@onboarding_completed', 'true');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      await new Promise(resolve => setTimeout(resolve, 800));
-      navigation.replace('Login');
-    } catch (err) {
-      console.log('Error @setItem: ', err);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-    } finally {
+      
+      // Fade out animation
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.timing(swipeHintAnim, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        navigation.replace('Login');
+      });
+    } catch (error) {
+      console.error('Error saving onboarding status:', error);
       setIsLoading(false);
     }
   };
 
-  const Slide = ({ item, index }) => {
+  useEffect(() => {
+    if (showSwipeHint) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(swipeHintAnim, {
+            toValue: 0.7,
+            duration: 1000,
+            useNativeDriver: true,
+          }),
+          Animated.timing(swipeHintAnim, {
+            toValue: 1,
+            duration: 1000,
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+    }
+  }, [showSwipeHint]);
+
+  useEffect(() => {
+    if (currentIndex > 0) {
+      setShowSwipeHint(false);
+    }
+  }, [currentIndex]);
+
+  const handleNext = () => {
+    if (currentIndex < slides.length - 1) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      flatListRef.current?.scrollToIndex({
+        index: currentIndex + 1,
+        animated: true,
+      });
+    }
+  };
+
+  const handleComplete = () => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    completeOnboarding();
+  };
+
+  const handleSkip = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    completeOnboarding();
+  };
+
+  const renderSwipeHint = () => {
+    if (!showSwipeHint) return null;
+    
+    return (
+      <Animated.View
+        style={[
+          styles.swipeHint,
+          {
+            opacity: swipeHintAnim,
+            transform: [{
+              translateX: swipeHintAnim.interpolate({
+                inputRange: [0.7, 1],
+                outputRange: [0, 20],
+              }),
+            }],
+          },
+        ]}
+      >
+        <MaterialCommunityIcons
+          name="gesture-swipe-horizontal"
+          size={30}
+          color="rgba(255, 255, 255, 0.8)"
+        />
+        <Text style={styles.swipeHintText}>Swipe to explore</Text>
+      </Animated.View>
+    );
+  };
+
+  const renderDot = (index) => {
     const inputRange = [
       (index - 1) * width,
       index * width,
       (index + 1) * width,
     ];
 
-    const translateY = scrollX.interpolate({
-      inputRange,
-      outputRange: [100, 0, 100],
-      extrapolate: 'clamp',
-    });
-
     const scale = scrollX.interpolate({
       inputRange,
-      outputRange: [0.8, 1, 0.8],
+      outputRange: [0.8, 1.2, 0.8],
       extrapolate: 'clamp',
     });
 
     const opacity = scrollX.interpolate({
       inputRange,
-      outputRange: [0.5, 1, 0.5],
+      outputRange: [0.4, 1, 0.4],
       extrapolate: 'clamp',
     });
 
     return (
-      <Animated.View 
+      <Animated.View
+        key={index}
         style={[
-          styles.slide,
+          styles.dot,
           {
-            transform: [{ translateY }, { scale }],
+            transform: [{ scale }],
             opacity,
-          }
+          },
         ]}
-      >
-        <Animatable.View
-          animation="bounceIn"
-          duration={1500}
-          delay={500}
-          style={[styles.iconContainer, { backgroundColor: item.color + '20' }]}
-        >
-          <MaterialCommunityIcons
-            name={item.icon}
-            size={80}
-            color={item.color}
-          />
-        </Animatable.View>
-        <Animatable.View animation="fadeInUp" delay={700}>
-          <Text
-            variant="headlineMedium"
-            style={[styles.title, { color: theme.colors.primary }]}
-          >
-            {item.title}
-          </Text>
-          <Text
-            variant="bodyLarge"
-            style={[styles.description, { color: theme.colors.secondary }]}
-          >
-            {item.description}
-          </Text>
-        </Animatable.View>
-      </Animated.View>
+      />
     );
   };
 
-  const Pagination = () => {
+  const renderItem = ({ item, index }) => {
+    const inputRange = [
+      (index - 1) * width,
+      index * width,
+      (index + 1) * width,
+    ];
+
+    const scale = scrollX.interpolate({
+      inputRange,
+      outputRange: [0.8, 1, 0.8],
+    });
+
+    const translateX = scrollX.interpolate({
+      inputRange,
+      outputRange: [width * 0.1, 0, -width * 0.1],
+    });
+
     return (
-      <Animatable.View 
-        style={styles.pagination}
-        animation="fadeInUp"
-        delay={1000}
+      <Animated.View
+        style={[
+          styles.slideContainer,
+          { 
+            transform: [
+              { scale },
+              { translateX },
+            ],
+          },
+        ]}
       >
-        {slides.map((_, i) => {
-          const inputRange = [(i - 1) * width, i * width, (i + 1) * width];
-          
-          const dotWidth = scrollX.interpolate({
-            inputRange,
-            outputRange: [10, 20, 10],
-            extrapolate: 'clamp',
-          });
-
-          const opacity = scrollX.interpolate({
-            inputRange,
-            outputRange: [0.3, 1, 0.3],
-            extrapolate: 'clamp',
-          });
-
-          const scale = scrollX.interpolate({
-            inputRange,
-            outputRange: [1, 1.3, 1],
-            extrapolate: 'clamp',
-          });
-
-          return (
-            <Animated.View
-              key={i}
-              style={[
-                styles.dot,
-                {
-                  width: dotWidth,
-                  opacity,
-                  transform: [{ scale }],
-                  backgroundColor: theme.colors.primary,
-                },
-              ]}
+        <Animated.View
+          style={[
+            styles.iconContainer,
+            {
+              transform: [{
+                translateX: scrollX.interpolate({
+                  inputRange,
+                  outputRange: [-30, 0, 30],
+                }),
+              }],
+            },
+          ]}
+        >
+          <MaterialCommunityIcons
+            name={item.icon}
+            size={scaledSize(60)}
+            color="#fff"
+          />
+          <Animatable.View
+            animation="bounceIn"
+            delay={1000}
+            style={styles.secondaryIconContainer}
+          >
+            <MaterialCommunityIcons
+              name={item.secondaryIcon}
+              size={scaledSize(24)}
+              color="#fff"
             />
-          );
-        })}
-      </Animatable.View>
+          </Animatable.View>
+        </Animated.View>
+        
+        <Animatable.Text 
+          animation="fadeInUp"
+          delay={300}
+          style={styles.title}
+        >
+          {item.title}
+        </Animatable.Text>
+        
+        <Animatable.Text
+          animation="fadeInUp"
+          delay={400}
+          style={styles.description}
+        >
+          {item.description}
+        </Animatable.Text>
+        
+        <View style={styles.featuresContainer}>
+          {item.features.map((feature, idx) => (
+            <Animatable.View
+              key={idx}
+              animation="fadeInUp"
+              delay={500 + idx * 200}
+              style={styles.featureItem}
+            >
+              <Text style={styles.featureText}>{feature}</Text>
+            </Animatable.View>
+          ))}
+        </View>
+      </Animated.View>
     );
   };
 
   return (
-    <View style={styles.container}>
+    <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
       <LinearGradient
-        colors={[theme.colors.primary + '20', 'transparent']}
-        style={StyleSheet.absoluteFill}
+        colors={['#064e3b', '#065f46', '#047857']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
+        style={StyleSheet.absoluteFillObject}
+      />
+      
+      <TouchableOpacity
+        style={[styles.skipButton, isLoading && styles.disabledButton]}
+        onPress={handleSkip}
+        disabled={isLoading}
+      >
+        <Text style={styles.skipText}>Skip</Text>
+      </TouchableOpacity>
+
+      {renderSwipeHint()}
+
+      <AnimatedFlatList
+        ref={flatListRef}
+        data={slides}
+        renderItem={renderItem}
+        keyExtractor={(item) => item.id}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+          { useNativeDriver: true }
+        )}
+        scrollEventThrottle={16}
+        onMomentumScrollEnd={(event) => {
+          const index = Math.round(event.nativeEvent.contentOffset.x / width);
+          setCurrentIndex(index);
+        }}
+        getItemLayout={(_, index) => ({
+          length: width,
+          offset: width * index,
+          index,
+        })}
       />
 
-      <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
-        <TouchableOpacity
-          style={[styles.skipButton, { opacity: isLastSlide ? 0 : 1 }]}
-          onPress={skip}
-          disabled={isLastSlide || isLoading}
-        >
-          <Text style={{ color: theme.colors.primary }}>Skip</Text>
-        </TouchableOpacity>
+      <View style={styles.bottomContainer}>
+        <View style={styles.pagination}>
+          {slides.map((_, index) => renderDot(index))}
+        </View>
+        
+        <View style={styles.progressBar}>
+          <Animated.View
+            style={[
+              styles.progressFill,
+              {
+                transform: [{
+                  scaleX: scrollX.interpolate({
+                    inputRange: [0, width * (slides.length - 1)],
+                    outputRange: [0.01, 1],
+                    extrapolate: 'clamp',
+                  })
+                }],
+                transformOrigin: 'left',
+              },
+            ]}
+          />
+        </View>
 
-        <FlatList
-          data={slides}
-          renderItem={({ item, index }) => <Slide item={item} index={index} />}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          pagingEnabled
-          bounces={false}
-          keyExtractor={item => item.id}
-          onScroll={Animated.event(
-            [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-            { useNativeDriver: true }
-          )}
-          scrollEventThrottle={32}
-          onViewableItemsChanged={viewableItemsChanged}
-          viewabilityConfig={viewConfig}
-          ref={slidesRef}
-        />
-
-        <Pagination />
-
-        <Animatable.View
-          style={styles.footer}
-          animation="fadeInUp"
-          delay={1200}
-        >
-          <Button
-            mode="contained"
-            onPress={scrollTo}
-            style={styles.button}
-            loading={isLoading}
+        {currentIndex === slides.length - 1 ? (
+          <TouchableOpacity
+            style={[styles.button, isLoading && styles.disabledButton]}
+            onPress={handleComplete}
             disabled={isLoading}
           >
-            {isLastSlide ? "Let's Start" : 'Next'}
-          </Button>
-        </Animatable.View>
-      </Animated.View>
-
-      <LoadingOverlay visible={isLoading} message={loadingMessage} />
-    </View>
+            <Text style={styles.buttonText}>Get Started</Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            style={[styles.button, isLoading && styles.disabledButton]}
+            onPress={handleNext}
+            disabled={isLoading}
+          >
+            <Text style={styles.buttonText}>Next</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    </Animated.View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
-  },
-  content: {
-    flex: 1,
+    paddingTop: Platform.OS === 'ios' ? scaledSize(44) : StatusBar.currentHeight,
   },
   skipButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: scaledSize(20),
+    paddingVertical: scaledSize(10),
+    borderRadius: scaledSize(25),
     position: 'absolute',
-    top: 50,
-    right: 20,
-    zIndex: 1,
-    padding: 10,
+    top: Platform.OS === 'ios' ? scaledSize(44) : StatusBar.currentHeight + scaledSize(10),
+    right: scaledSize(20),
+    zIndex: 10,
   },
-  slide: {
-    width,
-    paddingHorizontal: 20,
-    paddingTop: height * 0.1,
+  skipText: {
+    color: '#FFFFFF',
+    fontSize: scaledSize(16),
+    fontWeight: '600',
+  },
+  slideContainer: {
+    flex: 1,
     alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: width * 0.1,
+    width: width,
   },
   iconContainer: {
-    width: 160,
-    height: 160,
-    borderRadius: 80,
+    width: scaledSize(100),
+    height: scaledSize(100),
+    borderRadius: scaledSize(50),
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 30,
+    marginBottom: scaledSize(40),
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   title: {
+    fontSize: scaledSize(32),
+    fontWeight: '800',
+    color: '#FFFFFF',
+    marginBottom: scaledSize(16),
     textAlign: 'center',
-    fontWeight: 'bold',
-    marginBottom: 10,
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
   description: {
+    fontSize: scaledSize(16),
+    color: 'rgba(255, 255, 255, 0.9)',
     textAlign: 'center',
-    maxWidth: '80%',
-    alignSelf: 'center',
-    opacity: 0.7,
+    marginBottom: scaledSize(32),
+    lineHeight: scaledSize(24),
+  },
+  featuresContainer: {
+    width: '100%',
+    paddingHorizontal: scaledSize(16),
+  },
+  featureItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    padding: scaledSize(16),
+    borderRadius: scaledSize(12),
+    marginBottom: scaledSize(12),
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  featureText: {
+    color: '#FFFFFF',
+    fontSize: scaledSize(15),
+    flex: 1,
+  },
+  bottomContainer: {
+    paddingHorizontal: width * 0.1,
+    paddingVertical: scaledSize(20),
+    paddingBottom: Platform.OS === 'ios' ? scaledSize(40) : scaledSize(20),
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
   },
   pagination: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 20,
+    marginBottom: scaledSize(20),
   },
   dot: {
-    height: 10,
-    borderRadius: 5,
-    marginHorizontal: 5,
+    width: scaledSize(8),
+    height: scaledSize(8),
+    borderRadius: scaledSize(4),
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    marginHorizontal: scaledSize(4),
   },
-  footer: {
-    marginBottom: 50,
-    paddingHorizontal: 20,
+  activeDot: {
+    backgroundColor: '#FFFFFF',
+    width: scaledSize(24),
   },
   button: {
-    paddingVertical: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    height: scaledSize(56),
+    borderRadius: scaledSize(28),
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  buttonText: {
+    color: '#FFFFFF',
+    fontSize: scaledSize(18),
+    fontWeight: 'bold',
+  },
+  progressBar: {
+    height: scaledSize(4),
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: scaledSize(2),
+    overflow: 'hidden',
+    marginVertical: scaledSize(16),
+  },
+  progressFill: {
+    height: '100%',
+    width: '100%',
+    backgroundColor: '#FFFFFF',
+  },
+  swipeHint: {
+    position: 'absolute',
+    bottom: height * 0.15,
+    alignSelf: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    padding: scaledSize(10),
+    borderRadius: scaledSize(20),
+    flexDirection: 'row',
+  },
+  swipeHintText: {
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginLeft: scaledSize(8),
+    fontSize: scaledSize(14),
+  },
+  secondaryIconContainer: {
+    position: 'absolute',
+    top: -scaledSize(10),
+    right: -scaledSize(10),
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: scaledSize(15),
+    padding: scaledSize(5),
+  },
+  disabledButton: {
+    opacity: 0.5,
   },
 });
 

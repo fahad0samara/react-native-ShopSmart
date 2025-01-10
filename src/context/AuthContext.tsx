@@ -1,9 +1,19 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { 
+  onAuthStateChanged, 
+  signOut, 
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  updateProfile,
+  User
+} from 'firebase/auth';
+import { auth } from '../config/firebase';
 
 interface AuthContextType {
   isLoading: boolean;
   userToken: string | null;
+  user: User | null;
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -14,84 +24,99 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [userToken, setUserToken] = useState<string | null>(null);
+  const [user, setUser] = useState<User | null>(null);
 
+  // Check for stored auth state when app loads
   useEffect(() => {
-    // Check for stored token when app loads
-    checkToken();
+    const bootstrapAsync = async () => {
+      try {
+        // Check if we have a stored user
+        const storedUser = await AsyncStorage.getItem('@user');
+        if (storedUser) {
+          const parsedUser = JSON.parse(storedUser);
+          setUser(parsedUser);
+          console.log('Restored user from storage:', parsedUser.email);
+        }
+      } catch (error) {
+        console.error('Error restoring auth state:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    bootstrapAsync();
   }, []);
 
-  const checkToken = async () => {
-    try {
-      const token = await AsyncStorage.getItem('@auth_token');
-      const isFirstTime = await AsyncStorage.getItem('@first_time');
-      
-      if (!isFirstTime) {
-        // If it's the first time, don't auto-login
-        await AsyncStorage.setItem('@first_time', 'false');
-        setUserToken(null);
-      } else {
-        setUserToken(token);
+  // Listen for auth state changes
+  useEffect(() => {
+    console.log('Setting up auth state listener');
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      try {
+        if (user) {
+          // Store user data in AsyncStorage
+          await AsyncStorage.setItem('@user', JSON.stringify(user));
+          setUser(user);
+          console.log('Auth state updated - User logged in:', user.email);
+        } else {
+          // Clear stored data
+          await AsyncStorage.removeItem('@user');
+          setUser(null);
+          console.log('Auth state updated - User logged out');
+        }
+      } catch (error) {
+        console.error('Auth state change error:', error);
       }
-    } catch (error) {
-      console.error('Error checking token:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const login = async (email: string, password: string) => {
     try {
-      setIsLoading(true);
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // For testing, accept any email/password
-      const token = 'user_token_' + Date.now();
-      await AsyncStorage.setItem('@auth_token', token);
-      await AsyncStorage.setItem('@user_email', email);
-      setUserToken(token);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      await AsyncStorage.setItem('@user', JSON.stringify(userCredential.user));
+      setUser(userCredential.user);
+      console.log('Login successful for user:', email);
     } catch (error) {
-      throw new Error('Login failed');
-    } finally {
-      setIsLoading(false);
+      console.error('Login error:', error);
+      throw error;
     }
   };
 
   const register = async (name: string, email: string, password: string) => {
     try {
-      setIsLoading(true);
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Simulate successful registration and auto-login
-      const token = 'user_token_' + Date.now();
-      await AsyncStorage.setItem('@auth_token', token);
-      await AsyncStorage.setItem('@user_email', email);
-      await AsyncStorage.setItem('@user_name', name);
-      setUserToken(token);
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      await updateProfile(userCredential.user, { displayName: name });
+      await AsyncStorage.setItem('@user', JSON.stringify(userCredential.user));
+      setUser(userCredential.user);
+      console.log('Registration successful for user:', email);
     } catch (error) {
-      throw new Error('Registration failed');
-    } finally {
-      setIsLoading(false);
+      console.error('Registration error:', error);
+      throw error;
     }
   };
 
   const logout = async () => {
     try {
-      setIsLoading(true);
-      await AsyncStorage.removeItem('@auth_token');
-      await AsyncStorage.removeItem('@user_email');
-      await AsyncStorage.removeItem('@user_name');
-      setUserToken(null);
+      await signOut(auth);
+      await AsyncStorage.removeItem('@user');
+      setUser(null);
+      console.log('Logout successful');
     } catch (error) {
-      console.error('Error during logout:', error);
-    } finally {
-      setIsLoading(false);
+      console.error('Logout error:', error);
+      throw error;
     }
   };
 
   return (
-    <AuthContext.Provider value={{ isLoading, userToken, login, logout, register }}>
+    <AuthContext.Provider value={{ 
+      isLoading, 
+      userToken: user ? 'token' : null, // Simplified token handling
+      user, 
+      login, 
+      logout, 
+      register 
+    }}>
       {children}
     </AuthContext.Provider>
   );
@@ -99,7 +124,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
+  if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;

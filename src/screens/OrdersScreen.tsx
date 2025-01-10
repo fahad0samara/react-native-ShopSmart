@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef } from 'react';
-import { View, StyleSheet, ScrollView, Alert, Share, Linking, Dimensions, Platform, StatusBar, Image } from 'react-native';
-import { Text, Card, Button, Portal, Modal, ProgressBar, IconButton, Divider, Badge, useTheme, Searchbar, Menu, FAB, Rating, TextInput, Avatar, Chip } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, Alert, Share, Linking, Dimensions, Platform, Image } from 'react-native';
+import { Text, Card, Button, Portal, Modal, ProgressBar, IconButton, Divider, Badge, useTheme, Searchbar, Menu, FAB, Rating, TextInput, Avatar, Chip, Surface } from 'react-native-paper';
 import { useApp } from '../context/AppContext';
 import * as Haptics from 'expo-haptics';
 import { useNavigation } from '@react-navigation/native';
@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { BlurView } from 'expo-blur';
+import { StatusBar } from 'expo-status-bar';
 import { theme } from '../utils/theme';
 import { OrderCardSkeleton } from '../components/SkeletonLoader';
 
@@ -205,8 +206,8 @@ const OrdersScreen = () => {
 
   if (!user) {
     return (
-      <View style={styles.centerContainer}>
-        <Text variant="titleMedium" style={styles.errorText}>
+      <View style={[styles.centerContainer, { backgroundColor: theme.colors.background }]}>
+        <Text variant="titleMedium" style={[styles.errorText, { color: theme.colors.onSurface }]}>
           Please login to view your orders
         </Text>
         <Button 
@@ -377,15 +378,15 @@ const OrdersScreen = () => {
   const getStatusColor = (status) => {
     switch (status.toLowerCase()) {
       case 'delivered':
-        return 'green';
+        return theme.colors.primary;
       case 'cancelled':
-        return 'red';
+        return theme.colors.error;
       case 'processing':
-        return 'orange';
+        return theme.colors.secondary;
       case 'shipped':
-        return 'blue';
+        return theme.colors.tertiary;
       default:
-        return 'grey';
+        return theme.colors.outline;
     }
   };
 
@@ -506,10 +507,10 @@ const OrdersScreen = () => {
       <Card.Content>
         <View style={styles.orderHeader}>
           <View>
-            <Text variant="titleMedium" style={styles.orderId}>
+            <Text variant="titleMedium" style={[styles.orderId, { color: theme.colors.onSurface }]}>
               Order #{item.id.slice(-8)}
             </Text>
-            <Text variant="bodySmall" style={styles.orderDate}>
+            <Text variant="bodySmall" style={[styles.orderDate, { color: theme.colors.onSurfaceVariant }]}>
               {moment(item.date).format('MMM D, YYYY')}
             </Text>
           </View>
@@ -605,18 +606,30 @@ const OrdersScreen = () => {
   ), []);
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.background }]}>
+      <StatusBar style={theme.dark ? "light" : "dark"} />
       <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>My Orders</Text>
+        <Surface style={[styles.header, { backgroundColor: theme.colors.elevation.level2 }]}>
+          <View style={styles.headerTop}>
+            <IconButton
+              icon="arrow-left"
+              size={24}
+              onPress={() => navigation.goBack()}
+              style={styles.backButton}
+            />
+            <Text variant="headlineMedium" style={[styles.headerTitle, { color: theme.colors.onSurface }]}>
+              My Orders
+            </Text>
+          </View>
           <View style={styles.searchContainer}>
             <Searchbar
               placeholder="Search orders..."
               onChangeText={setSearchQuery}
               value={searchQuery}
-              style={styles.searchBar}
+              style={[styles.searchBar, { backgroundColor: theme.colors.elevation.level1 }]}
               iconColor={theme.colors.primary}
-              inputStyle={styles.searchInput}
+              inputStyle={[styles.searchInput, { color: theme.colors.onSurface }]}
+              placeholderTextColor={theme.colors.onSurfaceVariant}
             />
             <Menu
               visible={filterMenuVisible}
@@ -626,6 +639,7 @@ const OrdersScreen = () => {
                   icon="filter-variant"
                   size={24}
                   onPress={() => setFilterMenuVisible(true)}
+                  iconColor={theme.colors.onSurface}
                 />
               }
             >
@@ -684,7 +698,8 @@ const OrdersScreen = () => {
                 <Chip 
                   mode="outlined" 
                   onClose={() => setFilterStatus('all')}
-                  style={styles.filterChip}
+                  style={[styles.filterChip, { backgroundColor: theme.colors.elevation.level1 }]}
+                  textStyle={{ color: theme.colors.onSurfaceVariant }}
                 >
                   {filterStatus.replace('_', ' ')}
                 </Chip>
@@ -692,16 +707,17 @@ const OrdersScreen = () => {
               <Chip 
                 mode="outlined" 
                 icon={sortBy === 'date' ? 'calendar' : 'cash'}
-                style={styles.filterChip}
+                style={[styles.filterChip, { backgroundColor: theme.colors.elevation.level1 }]}
+                textStyle={{ color: theme.colors.onSurfaceVariant }}
               >
                 Sort: {sortBy === 'date' ? 'Date' : 'Price'}
               </Chip>
             </View>
           </View>
-        </View>
+        </Surface>
 
         <ScrollView 
-          style={styles.scrollView}
+          style={[styles.scrollView, { backgroundColor: theme.colors.background }]}
           showsVerticalScrollIndicator={false}
         >
           {loading ? (
@@ -712,15 +728,17 @@ const OrdersScreen = () => {
             </View>
           ) : (
             filteredOrders.length === 0 ? (
-              <View style={styles.emptyState}>
+              <View style={[styles.emptyState, { backgroundColor: theme.colors.background }]}>
                 <Ionicons 
                   name="cart-outline" 
                   size={80} 
                   color={theme.colors.primary}
                   style={styles.emptyIcon}
                 />
-                <Text style={styles.emptyText}>No orders found</Text>
-                <Text style={styles.emptySubtext}>
+                <Text style={[styles.emptyText, { color: theme.colors.onSurface }]}>
+                  No orders found
+                </Text>
+                <Text style={[styles.emptySubtext, { color: theme.colors.onSurfaceVariant }]}>
                   Start shopping to see your orders here
                 </Text>
                 <Button 
@@ -752,7 +770,7 @@ const OrdersScreen = () => {
           <Modal
             visible={visible}
             onDismiss={hideModal}
-            contentContainerStyle={styles.modalContainer}
+            contentContainerStyle={[styles.modalContainer, { backgroundColor: theme.colors.elevation.level3 }]}
           >
             {selectedOrder && (
               <ScrollView style={styles.modalScroll}>
@@ -816,11 +834,9 @@ const OrdersScreen = () => {
                             <Text variant="bodyLarge" style={styles.timelineStatus}>
                               {step.status}
                             </Text>
-                            {step.time && (
-                              <Text variant="bodySmall" style={styles.timelineTime}>
-                                {moment(step.time).format('MMM D, h:mm A')}
-                              </Text>
-                            )}
+                            {step.time && <Text variant="bodySmall" style={styles.timelineTime}>
+                              {moment(step.time).format('MMM D, h:mm A')}
+                            </Text>}
                           </View>
                           {index < 3 && <View style={styles.timelineLine} />}
                         </View>
@@ -1065,7 +1081,6 @@ const OrdersScreen = () => {
 
         <FAB.Group
           open={fabOpen}
-          visible={true}
           icon={fabOpen ? 'close' : 'plus'}
           actions={[
             {
@@ -1075,6 +1090,8 @@ const OrdersScreen = () => {
                 setShowAnalytics(true);
                 setFabOpen(false);
               },
+              style: { backgroundColor: theme.colors.elevation.level3 },
+              labelStyle: { color: theme.colors.onSurface },
             },
             {
               icon: 'file-download',
@@ -1083,6 +1100,8 @@ const OrdersScreen = () => {
                 orders.forEach(order => generatePDFInvoice(order));
                 setFabOpen(false);
               },
+              style: { backgroundColor: theme.colors.elevation.level3 },
+              labelStyle: { color: theme.colors.onSurface },
             },
             {
               icon: 'refresh',
@@ -1092,6 +1111,8 @@ const OrdersScreen = () => {
                 // Add refresh logic here
                 setFabOpen(false);
               },
+              style: { backgroundColor: theme.colors.elevation.level3 },
+              labelStyle: { color: theme.colors.onSurface },
             },
           ]}
           onStateChange={({ open }) => setFabOpen(open)}
@@ -1126,44 +1147,31 @@ const getDeliveryTime = (order) => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#fff',
   },
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
   },
   header: {
-    backgroundColor: '#fff',
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 8,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 4,
-      },
-    }),
+    padding: 16,
+  },
+  headerTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  backButton: {
+    marginRight: 8,
   },
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 12,
-    color: '#1a1a1a',
   },
   searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    marginTop: 8,
   },
   searchBar: {
-    flex: 1,
     elevation: 0,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 10,
+    borderRadius: 12,
   },
   searchInput: {
     fontSize: 16,
@@ -1172,20 +1180,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     marginTop: 8,
+    gap: 8,
   },
   filterChip: {
     marginRight: 8,
-    marginTop: 8,
   },
   scrollView: {
     flex: 1,
-    padding: 16,
   },
   orderCard: {
     marginBottom: 16,
     borderRadius: 12,
     elevation: 2,
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.surface,
   },
   orderHeader: {
     flexDirection: 'row',
@@ -1196,11 +1203,10 @@ const styles = StyleSheet.create({
   orderId: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#1a1a1a',
   },
   orderDate: {
     fontSize: 14,
-    color: '#666',
+    color: theme.colors.onSurfaceVariant,
     marginTop: 4,
   },
   statusBadge: {
@@ -1230,17 +1236,16 @@ const styles = StyleSheet.create({
   itemName: {
     fontSize: 15,
     fontWeight: '500',
-    color: '#1a1a1a',
   },
   itemQuantity: {
     fontSize: 14,
-    color: '#666',
+    color: theme.colors.onSurfaceVariant,
     marginTop: 2,
   },
   itemPrice: {
     fontSize: 15,
     fontWeight: '500',
-    color: '#1a1a1a',
+    color: theme.colors.primary,
   },
   divider: {
     marginVertical: 12,
@@ -1254,12 +1259,12 @@ const styles = StyleSheet.create({
   totalLabel: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#1a1a1a',
+    color: theme.colors.onSurfaceVariant,
   },
   orderTotal: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#2196F3',
+    color: theme.colors.primary,
   },
   actionButtons: {
     flexDirection: 'row',
@@ -1281,17 +1286,14 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#1a1a1a',
-    marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 16,
-    color: '#666',
     marginBottom: 24,
     textAlign: 'center',
   },
   shopButton: {
-    paddingHorizontal: 32,
+    width: 200,
   },
   shopButtonLabel: {
     fontSize: 16,
@@ -1347,7 +1349,7 @@ const styles = StyleSheet.create({
     right: 50,
   },
   modalContainer: {
-    backgroundColor: 'white',
+    backgroundColor: theme.colors.surface,
     margin: 20,
     borderRadius: 16,
     maxHeight: '80%',
@@ -1367,7 +1369,7 @@ const styles = StyleSheet.create({
     color: theme.colors.primary,
   },
   modalSubtitle: {
-    color: theme.colors.secondary,
+    color: theme.colors.onSurfaceVariant,
   },
   closeButton: {
     margin: -8,
@@ -1416,7 +1418,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   modalItemQuantity: {
-    color: theme.colors.secondary,
+    color: theme.colors.onSurfaceVariant,
     marginBottom: 2,
   },
   modalItemPrice: {
@@ -1492,7 +1494,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   timelineTime: {
-    color: theme.colors.secondary,
+    color: theme.colors.onSurfaceVariant,
   },
   timelineLine: {
     position: 'absolute',

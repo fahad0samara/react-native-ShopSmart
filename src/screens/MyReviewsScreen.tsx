@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Image, ActivityIndicator } from 'react-native';
-import { Text, Card, Button, useTheme, TextInput, Portal, Modal } from 'react-native-paper';
+import { Text, Card, Button, useTheme, TextInput, Portal, Modal, IconButton, Chip, Surface } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { StatusBar } from 'expo-status-bar';
 import Rating from '../components/Rating';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
@@ -63,7 +64,7 @@ const MyReviewsScreen = () => {
     setEditRating(0);
     setEditComment('');
     setShowEditModal(true);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    // Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
   const handleEditReview = (review) => {
@@ -71,7 +72,7 @@ const MyReviewsScreen = () => {
     setEditRating(review.rating);
     setEditComment(review.comment);
     setShowEditModal(true);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    // Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
   const handleSaveReview = async () => {
@@ -95,11 +96,11 @@ const MyReviewsScreen = () => {
       setShowEditModal(false);
       
       // Provide haptic feedback for success
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      // Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (error) {
       console.error('Error saving review:', error);
       // Provide haptic feedback for error
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      // Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
   };
 
@@ -114,7 +115,9 @@ const MyReviewsScreen = () => {
   if (error) {
     return (
       <View style={styles.centerContainer}>
-        <Text variant="titleMedium" style={styles.errorText}>{error}</Text>
+        <Text variant="titleMedium" style={[styles.errorText, { color: theme.colors.error }]}>
+          {error}
+        </Text>
         {!user && (
           <Button 
             mode="contained" 
@@ -129,9 +132,20 @@ const MyReviewsScreen = () => {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text variant="headlineMedium" style={styles.headerTitle}>My Reviews</Text>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <StatusBar style={theme.dark ? "light" : "dark"} />
+      <Surface style={[styles.header, { backgroundColor: theme.colors.elevation.level2 }]}>
+        <View style={styles.headerTop}>
+          <IconButton
+            icon="arrow-left"
+            size={24}
+            onPress={() => navigation.goBack()}
+            style={styles.backButton}
+          />
+          <Text variant="headlineMedium" style={[styles.headerTitle, { color: theme.colors.onSurface }]}>
+            My Reviews
+          </Text>
+        </View>
         <View style={styles.statsContainer}>
           <View style={styles.statItem}>
             <View style={[styles.statBadge, { backgroundColor: theme.colors.primaryContainer }]}>
@@ -139,19 +153,23 @@ const MyReviewsScreen = () => {
                 {pendingReviews.length}
               </Text>
             </View>
-            <Text variant="bodyMedium" style={styles.statLabel}>Pending</Text>
+            <Text variant="bodyMedium" style={[styles.statLabel, { color: theme.colors.onSurfaceVariant }]}>
+              Pending
+            </Text>
           </View>
-          <View style={styles.statDivider} />
+          <View style={[styles.statDivider, { backgroundColor: theme.colors.outline }]} />
           <View style={styles.statItem}>
             <View style={[styles.statBadge, { backgroundColor: theme.colors.secondaryContainer }]}>
               <Text variant="titleLarge" style={[styles.statNumber, { color: theme.colors.secondary }]}>
                 {myReviews.length}
               </Text>
             </View>
-            <Text variant="bodyMedium" style={styles.statLabel}>Completed</Text>
+            <Text variant="bodyMedium" style={[styles.statLabel, { color: theme.colors.onSurfaceVariant }]}>
+              Completed
+            </Text>
           </View>
         </View>
-      </View>
+      </Surface>
 
       <ScrollView 
         style={styles.scrollView}
@@ -167,19 +185,24 @@ const MyReviewsScreen = () => {
                   size={24} 
                   color={theme.colors.primary} 
                 />
-                <Text variant="titleMedium" style={styles.sectionTitle}>
+                <Text variant="titleMedium" style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>
                   Pending Reviews
                 </Text>
               </View>
               <Chip 
                 mode="outlined" 
-                style={styles.sectionChip}
+                style={[styles.sectionChip, { backgroundColor: theme.colors.elevation.level1 }]}
+                textStyle={{ color: theme.colors.onSurfaceVariant }}
               >
                 {pendingReviews.length} items
               </Chip>
             </View>
             {pendingReviews.map((review) => (
-              <Card key={review.id} style={styles.card} mode="outlined">
+              <Card 
+                key={review.id} 
+                style={[styles.card, { backgroundColor: theme.colors.elevation.level1 }]} 
+                mode="outlined"
+              >
                 <Card.Content style={styles.cardInner}>
                   <View style={styles.cardContent}>
                     <Image 
@@ -188,7 +211,7 @@ const MyReviewsScreen = () => {
                       resizeMode="cover"
                     />
                     <View style={styles.productInfo}>
-                      <Text variant="titleMedium" style={styles.productName}>
+                      <Text variant="titleMedium" style={[styles.productName, { color: theme.colors.onSurface }]}>
                         {review.productName}
                       </Text>
                       <View style={styles.dateContainer}>
@@ -197,7 +220,7 @@ const MyReviewsScreen = () => {
                           size={16} 
                           color={theme.colors.onSurfaceVariant}
                         />
-                        <Text variant="bodySmall" style={styles.orderDate}>
+                        <Text variant="bodySmall" style={[styles.orderDate, { color: theme.colors.onSurfaceVariant }]}>
                           Ordered on {review.orderDate}
                         </Text>
                       </View>
@@ -218,98 +241,105 @@ const MyReviewsScreen = () => {
           </View>
         )}
 
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <View style={styles.sectionTitleContainer}>
-              <MaterialCommunityIcons 
-                name="star-outline" 
-                size={24} 
-                color={theme.colors.primary} 
-              />
-              <Text variant="titleMedium" style={styles.sectionTitle}>
-                My Reviews
-              </Text>
+        {myReviews.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionTitleContainer}>
+                <MaterialCommunityIcons 
+                  name="star-outline" 
+                  size={24} 
+                  color={theme.colors.primary} 
+                />
+                <Text variant="titleMedium" style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>
+                  My Reviews
+                </Text>
+              </View>
+              <Chip 
+                mode="outlined" 
+                style={[styles.sectionChip, { backgroundColor: theme.colors.elevation.level1 }]}
+                textStyle={{ color: theme.colors.onSurfaceVariant }}
+              >
+                {myReviews.length} reviews
+              </Chip>
             </View>
-            <Chip 
-              mode="outlined" 
-              style={styles.sectionChip}
-            >
-              {myReviews.length} reviews
-            </Chip>
-          </View>
-          {myReviews.map((review) => (
-            <Card key={review.id} style={styles.card} mode="outlined">
-              <Card.Content style={styles.cardInner}>
-                <View style={styles.cardContent}>
-                  <Image 
-                    source={{ uri: review.image }} 
-                    style={styles.productImage}
-                    resizeMode="cover"
-                  />
-                  <View style={styles.productInfo}>
-                    <Text variant="titleMedium" style={styles.productName}>
-                      {review.productName}
-                    </Text>
-                    <View style={styles.ratingContainer}>
-                      <Rating value={review.rating} size={20} />
-                      <View style={styles.dateContainer}>
-                        <MaterialCommunityIcons 
-                          name="calendar" 
-                          size={16} 
-                          color={theme.colors.onSurfaceVariant}
-                        />
-                        <Text variant="bodySmall" style={styles.date}>
-                          {review.date}
-                        </Text>
+            {myReviews.map((review) => (
+              <Card 
+                key={review.id} 
+                style={[styles.card, { backgroundColor: theme.colors.elevation.level1 }]} 
+                mode="outlined"
+              >
+                <Card.Content style={styles.cardInner}>
+                  <View style={styles.cardContent}>
+                    <Image 
+                      source={{ uri: review.image }} 
+                      style={styles.productImage}
+                      resizeMode="cover"
+                    />
+                    <View style={styles.productInfo}>
+                      <Text variant="titleMedium" style={[styles.productName, { color: theme.colors.onSurface }]}>
+                        {review.productName}
+                      </Text>
+                      <View style={styles.ratingContainer}>
+                        <Rating value={review.rating} size={20} />
+                        <View style={styles.dateContainer}>
+                          <MaterialCommunityIcons 
+                            name="calendar" 
+                            size={16} 
+                            color={theme.colors.onSurfaceVariant}
+                          />
+                          <Text variant="bodySmall" style={[styles.date, { color: theme.colors.onSurfaceVariant }]}>
+                            {review.date}
+                          </Text>
+                        </View>
                       </View>
                     </View>
                   </View>
-                </View>
-                <View style={styles.reviewContent}>
-                  <Text variant="bodyMedium" style={styles.comment}>
-                    {review.comment}
-                  </Text>
-                  <View style={styles.reviewStats}>
-                    <Chip 
-                      icon="thumb-up" 
-                      style={[styles.chip, styles.statChip]}
-                      textStyle={styles.chipText}
+                  <View style={styles.reviewContent}>
+                    <Text variant="bodyMedium" style={[styles.comment, { color: theme.colors.onSurface }]}>
+                      {review.comment}
+                    </Text>
+                    <View style={styles.reviewStats}>
+                      <Chip 
+                        icon="thumb-up" 
+                        style={[styles.chip, styles.statChip, { backgroundColor: theme.colors.elevation.level1 }]}
+                        textStyle={{ color: theme.colors.onSurfaceVariant }}
+                      >
+                        {review.likes} Likes
+                      </Chip>
+                      <Chip 
+                        icon="check-circle" 
+                        style={[styles.chip, styles.statChip, { backgroundColor: theme.colors.elevation.level1 }]}
+                        textStyle={{ color: theme.colors.onSurfaceVariant }}
+                      >
+                        {review.helpful} Helpful
+                      </Chip>
+                    </View>
+                    <Button
+                      mode="outlined"
+                      onPress={() => handleEditReview(review)}
+                      style={styles.editButton}
+                      icon="pencil"
                     >
-                      {review.likes} Likes
-                    </Chip>
-                    <Chip 
-                      icon="check-circle" 
-                      style={[styles.chip, styles.statChip]}
-                      textStyle={styles.chipText}
-                    >
-                      {review.helpful} Helpful
-                    </Chip>
+                      Edit Review
+                    </Button>
                   </View>
-                  <Button
-                    mode="outlined"
-                    onPress={() => handleEditReview(review)}
-                    style={styles.editButton}
-                    icon="pencil"
-                  >
-                    Edit Review
-                  </Button>
-                </View>
-              </Card.Content>
-            </Card>
-          ))}
-        </View>
+                </Card.Content>
+              </Card>
+            ))}
+          </View>
+        )}
       </ScrollView>
 
       <Portal>
         <Modal
           visible={showEditModal}
           onDismiss={() => setShowEditModal(false)}
-          contentContainerStyle={styles.modalContainer}
+          contentContainerStyle={[styles.modalWrapper, { backgroundColor: theme.colors.elevation.level3 }]}
         >
           <View style={styles.modalWrapper}>
             <View style={styles.modalContent}>
               <View style={styles.modalHeader}>
-                <Text variant="titleLarge" style={styles.modalTitle}>
+                <Text variant="titleLarge" style={[styles.modalTitle, { color: theme.colors.onSurface }]}>
                   {selectedReview?.isEdit ? 'Edit Review' : 'Write Review'}
                 </Text>
                 <Button
@@ -329,24 +359,24 @@ const MyReviewsScreen = () => {
                   resizeMode="cover"
                 />
                 <View style={styles.productDetailsText}>
-                  <Text variant="titleMedium" style={styles.modalProductName}>
+                  <Text variant="titleMedium" style={[styles.modalProductName, { color: theme.colors.onSurface }]}>
                     {selectedReview?.productName}
                   </Text>
-                  <Text variant="bodySmall" style={styles.modalOrderDate}>
+                  <Text variant="bodySmall" style={[styles.modalOrderDate, { color: theme.colors.onSurfaceVariant }]}>
                     Ordered on {selectedReview?.orderDate}
                   </Text>
                 </View>
               </View>
 
               <View style={styles.ratingSection}>
-                <Text variant="titleMedium" style={styles.ratingTitle}>
+                <Text variant="titleMedium" style={[styles.ratingTitle, { color: theme.colors.onSurface }]}>
                   Rate this product
                 </Text>
                 <Rating
                   value={editRating}
                   onValueChange={(value) => {
                     setEditRating(value);
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    // Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   }}
                   size={32}
                 />
@@ -366,7 +396,7 @@ const MyReviewsScreen = () => {
               </View>
 
               <View style={styles.reviewSection}>
-                <Text variant="titleMedium" style={styles.reviewTitle}>
+                <Text variant="titleMedium" style={[styles.reviewTitle, { color: theme.colors.onSurface }]}>
                   Write your review
                 </Text>
                 <TextInput
@@ -408,18 +438,22 @@ const MyReviewsScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
   },
   header: {
-    backgroundColor: theme.colors.background,
     padding: 24,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
-    elevation: 2,
+    borderBottomColor: 'transparent',
+  },
+  headerTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  backButton: {
+    marginRight: 16,
   },
   headerTitle: {
     fontWeight: 'bold',
-    marginBottom: 24,
     fontSize: 28,
   },
   statsContainer: {
@@ -445,13 +479,11 @@ const styles = StyleSheet.create({
     fontSize: 24,
   },
   statLabel: {
-    color: theme.colors.onSurfaceVariant,
     fontWeight: '500',
   },
   statDivider: {
     width: 1,
     height: 40,
-    backgroundColor: '#e0e0e0',
     marginHorizontal: 32,
   },
   scrollView: {
@@ -480,7 +512,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
   },
   sectionChip: {
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.elevation.level1,
   },
   card: {
     marginHorizontal: 24,
@@ -537,7 +569,7 @@ const styles = StyleSheet.create({
     marginTop: 20,
     paddingTop: 20,
     borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
+    borderTopColor: theme.colors.outline,
   },
   comment: {
     marginBottom: 20,
@@ -552,7 +584,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   statChip: {
-    backgroundColor: theme.colors.surfaceVariant,
+    backgroundColor: theme.colors.elevation.level1,
   },
   chipText: {
     fontSize: 13,
@@ -568,7 +600,7 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   modalWrapper: {
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.elevation.level3,
     borderRadius: 24,
     overflow: 'hidden',
     elevation: 4,
@@ -583,11 +615,11 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.surfaceVariant,
+    borderBottomColor: theme.colors.outline,
   },
   modalTitle: {
     fontWeight: 'bold',
-    color: theme.colors.primary,
+    color: theme.colors.onSurface,
   },
   closeButton: {
     margin: 0,
@@ -597,14 +629,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 24,
     padding: 16,
-    backgroundColor: theme.colors.surfaceVariant,
+    backgroundColor: theme.colors.elevation.level1,
     borderRadius: 16,
   },
   modalProductImage: {
     width: 80,
     height: 80,
     borderRadius: 12,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: '#f0f0f0',
   },
   productDetailsText: {
     flex: 1,
@@ -613,6 +645,7 @@ const styles = StyleSheet.create({
   modalProductName: {
     fontWeight: '600',
     marginBottom: 4,
+    color: theme.colors.onSurface,
   },
   modalOrderDate: {
     color: theme.colors.onSurfaceVariant,
@@ -621,18 +654,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 24,
     padding: 16,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: theme.colors.elevation.level1,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: theme.colors.surfaceVariant,
+    borderColor: theme.colors.outline,
   },
   ratingTitle: {
     marginBottom: 16,
     fontWeight: '600',
+    color: theme.colors.onSurface,
   },
   ratingFeedback: {
     marginTop: 12,
-    color: theme.colors.primary,
+    color: theme.colors.onSurfaceVariant,
     fontWeight: '500',
   },
   reviewSection: {
@@ -641,9 +675,10 @@ const styles = StyleSheet.create({
   reviewTitle: {
     marginBottom: 12,
     fontWeight: '600',
+    color: theme.colors.onSurface,
   },
   reviewInput: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: theme.colors.elevation.level1,
   },
   modalFooter: {
     flexDirection: 'row',
@@ -651,7 +686,7 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: theme.colors.surfaceVariant,
+    borderTopColor: theme.colors.outline,
   },
   footerButton: {
     minWidth: 120,

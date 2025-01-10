@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, Platform, TouchableOpacity } from 'react-native';
-import { Text, Button, useTheme, IconButton, FAB, Portal, Modal, TextInput } from 'react-native-paper';
+import { Text, Button, useTheme, IconButton, FAB, Portal, Modal, TextInput, Surface } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -115,7 +115,9 @@ const AddressScreen = () => {
             size={24}
             color={theme.colors.primary}
           />
-          <Text style={styles.addressLabel}>{address.label}</Text>
+          <Text style={[styles.addressLabel, { color: theme.colors.onSurface }]}>
+            {address.label}
+          </Text>
           {address.isDefault && (
             <View style={styles.defaultBadge}>
               <Text style={styles.defaultText}>Default</Text>
@@ -151,11 +153,15 @@ const AddressScreen = () => {
         </View>
       </View>
       <View style={styles.addressDetails}>
-        <Text style={styles.addressText}>{address.street}</Text>
-        <Text style={styles.addressText}>
+        <Text style={[styles.addressText, { color: theme.colors.onSurface }]}>
+          {address.street}
+        </Text>
+        <Text style={[styles.addressText, { color: theme.colors.onSurface }]}>
           {address.city}, {address.state} {address.zipCode}
         </Text>
-        <Text style={styles.addressText}>{address.country}</Text>
+        <Text style={[styles.addressText, { color: theme.colors.onSurface }]}>
+          {address.country}
+        </Text>
       </View>
       {!address.isDefault && (
         <Button
@@ -170,16 +176,25 @@ const AddressScreen = () => {
   );
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar style="light" />
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Delivery Addresses</Text>
-        </View>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.background }]}>
+      <StatusBar style={theme.dark ? "light" : "dark"} />
+      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <Surface style={[styles.header, { backgroundColor: theme.colors.elevation.level2 }]}>
+          <Text style={[styles.headerTitle, { color: theme.colors.onSurface }]}>Delivery Addresses</Text>
+        </Surface>
 
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           {addresses.map(renderAddressCard)}
         </ScrollView>
+
+        <FAB
+          icon="plus"
+          style={[styles.fab, { backgroundColor: theme.colors.primary }]}
+          onPress={() => {
+            setShowAddModal(true);
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          }}
+        />
 
         <Portal>
           <Modal
@@ -189,9 +204,9 @@ const AddressScreen = () => {
               setEditingAddress(null);
               resetForm();
             }}
-            contentContainerStyle={styles.modal}
+            contentContainerStyle={[styles.modal, { backgroundColor: theme.colors.elevation.level3 }]}
           >
-            <Text style={styles.modalTitle}>
+            <Text style={[styles.modalTitle, { color: theme.colors.onSurface }]}>
               {editingAddress ? 'Edit Address' : 'Add New Address'}
             </Text>
             <TextInput
@@ -200,6 +215,7 @@ const AddressScreen = () => {
               onChangeText={(text) => setFormData({ ...formData, label: text })}
               style={styles.input}
               mode="outlined"
+              theme={theme}
             />
             <TextInput
               label="Street Address"
@@ -207,6 +223,7 @@ const AddressScreen = () => {
               onChangeText={(text) => setFormData({ ...formData, street: text })}
               style={styles.input}
               mode="outlined"
+              theme={theme}
             />
             <TextInput
               label="City"
@@ -214,6 +231,7 @@ const AddressScreen = () => {
               onChangeText={(text) => setFormData({ ...formData, city: text })}
               style={styles.input}
               mode="outlined"
+              theme={theme}
             />
             <TextInput
               label="State"
@@ -221,6 +239,7 @@ const AddressScreen = () => {
               onChangeText={(text) => setFormData({ ...formData, state: text })}
               style={styles.input}
               mode="outlined"
+              theme={theme}
             />
             <TextInput
               label="ZIP Code"
@@ -228,7 +247,8 @@ const AddressScreen = () => {
               onChangeText={(text) => setFormData({ ...formData, zipCode: text })}
               style={styles.input}
               mode="outlined"
-              keyboardType="numeric"
+              theme={theme}
+              keyboardType="number-pad"
             />
             <TextInput
               label="Country"
@@ -236,6 +256,7 @@ const AddressScreen = () => {
               onChangeText={(text) => setFormData({ ...formData, country: text })}
               style={styles.input}
               mode="outlined"
+              theme={theme}
             />
             <Button
               mode="contained"
@@ -246,15 +267,6 @@ const AddressScreen = () => {
             </Button>
           </Modal>
         </Portal>
-
-        <FAB
-          icon="plus"
-          style={styles.fab}
-          onPress={() => {
-            setShowAddModal(true);
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          }}
-        />
       </View>
     </SafeAreaView>
   );
@@ -263,14 +275,12 @@ const AddressScreen = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#fff',
   },
   container: {
     flex: 1,
   },
   header: {
     padding: 16,
-    backgroundColor: '#fff',
     ...Platform.select({
       ios: {
         shadowColor: '#000',
@@ -286,14 +296,12 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#1a1a1a',
   },
   content: {
     flex: 1,
     padding: 16,
   },
   addressCard: {
-    backgroundColor: '#fff',
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
@@ -344,7 +352,6 @@ const styles = StyleSheet.create({
   },
   addressText: {
     fontSize: 16,
-    color: '#666',
     marginBottom: 4,
   },
   setDefaultButton: {
@@ -356,7 +363,6 @@ const styles = StyleSheet.create({
     bottom: 16,
   },
   modal: {
-    backgroundColor: '#fff',
     margin: 20,
     borderRadius: 12,
     padding: 20,

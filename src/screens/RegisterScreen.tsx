@@ -1,307 +1,191 @@
-import React, { useState, useRef } from 'react';
-import {
-  View,
-  StyleSheet,
-  Dimensions,
-  Animated,
-  TouchableOpacity,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-} from 'react-native';
-import {
-  Text,
-  TextInput,
-  Button,
-  useTheme,
-  IconButton,
-  Surface,
-  HelperText,
-} from 'react-native-paper';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import React, { useState } from 'react';
+import { View, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { Text, TextInput, Button, useTheme } from 'react-native-paper';
+import { createUserWithEmailAndPassword, updateProfile } from '@firebase/auth';
+import { auth } from '../config/firebase';
+import { useNavigation } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
-import { LinearGradient } from 'expo-linear-gradient';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const { width, height } = Dimensions.get('window');
-
-const RegisterScreen = ({ navigation }) => {
+const RegisterScreen = () => {
   const theme = useTheme();
+  const navigation = useNavigation();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(50)).current;
-
-  React.useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 1000,
-        useNativeDriver: true,
-      }),
-      Animated.spring(slideAnim, {
-        toValue: 0,
-        tension: 40,
-        friction: 8,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, []);
-
-  const validateEmail = (email: string) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
-
-  const validatePassword = (password: string) => {
-    return password.length >= 8;
-  };
-
   const handleRegister = async () => {
+    if (loading) return;
+    
+    // Validation
+    if (!name || !email || !password || !confirmPassword) {
+      setError('Please fill in all fields');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError('Passwords do not match');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      return;
+    }
+
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
     try {
-      setIsLoading(true);
-      setError('');
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-
-      // Validate inputs
-      if (!name || !email || !password || !confirmPassword) {
-        setError('Please fill in all fields');
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-        return;
-      }
-
-      if (!validateEmail(email)) {
-        setError('Please enter a valid email address');
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-        return;
-      }
-
-      if (!validatePassword(password)) {
-        setError('Password must be at least 8 characters long');
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-        return;
-      }
-
-      if (password !== confirmPassword) {
-        setError('Passwords do not match');
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-        return;
-      }
-
-      // TODO: Replace with your actual registration logic
-      await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate API call
-
-      // Store auth token
-      await AsyncStorage.setItem('@auth_token', 'dummy_token');
+      console.log('Starting registration...');
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      console.log('User created successfully:', userCredential.user.uid);
+      
+      console.log('Updating profile...');
+      await updateProfile(userCredential.user, {
+        displayName: name
+      });
+      console.log('Profile updated successfully');
       
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      navigation.replace('MainTabs');
-    } catch (err) {
-      setError('Registration failed. Please try again.');
+      // Navigation will be handled by the auth state listener
+    } catch (err: any) {
+      console.error('Registration error:', err);
+      console.error('Error code:', err.code);
+      console.error('Error message:', err.message);
+      
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-    } finally {
-      setIsLoading(false);
+      if (err.code === 'auth/email-already-in-use') {
+        setError('Email already in use');
+      } else if (err.code === 'auth/invalid-email') {
+        setError('Invalid email address');
+      } else if (err.code === 'auth/weak-password') {
+        setError('Password is too weak');
+      } else if (err.code === 'auth/network-request-failed') {
+        setError('Network error. Please check your internet connection.');
+      } else if (err.code === 'auth/operation-not-allowed') {
+        setError('Email/password registration is not enabled. Please contact support.');
+      } else {
+        setError(`Registration failed: ${err.message}`);
+      }
+      setLoading(false);
     }
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
-    >
-      <LinearGradient
-        colors={[theme.colors.primary + '20', 'transparent']}
-        style={StyleSheet.absoluteFill}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <Text style={[styles.title, { color: theme.colors.primary }]}>Create Account</Text>
+        <Text style={styles.subtitle}>Sign up to get started</Text>
+      </View>
+
+      {error ? (
+        <Text style={[styles.errorText, { color: theme.colors.error }]}>{error}</Text>
+      ) : null}
+
+      <TextInput
+        label="Full Name"
+        value={name}
+        onChangeText={setName}
+        mode="outlined"
+        style={styles.input}
+        left={<TextInput.Icon icon="account" />}
       />
 
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
+      <TextInput
+        label="Email"
+        value={email}
+        onChangeText={setEmail}
+        mode="outlined"
+        keyboardType="email-address"
+        autoCapitalize="none"
+        style={styles.input}
+        left={<TextInput.Icon icon="email" />}
+      />
+
+      <TextInput
+        label="Password"
+        value={password}
+        onChangeText={setPassword}
+        mode="outlined"
+        secureTextEntry
+        style={styles.input}
+        left={<TextInput.Icon icon="lock" />}
+      />
+
+      <TextInput
+        label="Confirm Password"
+        value={confirmPassword}
+        onChangeText={setConfirmPassword}
+        mode="outlined"
+        secureTextEntry
+        style={styles.input}
+        left={<TextInput.Icon icon="lock-check" />}
+      />
+
+      <Button
+        mode="contained"
+        onPress={handleRegister}
+        loading={loading}
+        disabled={loading}
+        style={styles.button}
       >
-        <Animated.View
-          style={[
-            styles.content,
-            {
-              opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }],
-            },
-          ]}
-        >
-          <Surface style={styles.logoContainer}>
-            <MaterialCommunityIcons
-              name="account-plus"
-              size={80}
-              color={theme.colors.primary}
-            />
-          </Surface>
+        Sign Up
+      </Button>
 
-          <Text
-            variant="headlineMedium"
-            style={[styles.title, { color: theme.colors.primary }]}
-          >
-            Create Account
-          </Text>
-          <Text
-            variant="bodyLarge"
-            style={[styles.subtitle, { color: theme.colors.secondary }]}
-          >
-            Join our shopping community
-          </Text>
-
-          {error ? (
-            <Text style={[styles.error, { color: theme.colors.error }]}>
-              {error}
-            </Text>
-          ) : null}
-
-          <TextInput
-            label="Full Name"
-            value={name}
-            onChangeText={setName}
-            style={styles.input}
-            mode="outlined"
-            left={<TextInput.Icon icon="account" />}
-          />
-
-          <TextInput
-            label="Email"
-            value={email}
-            onChangeText={setEmail}
-            style={styles.input}
-            mode="outlined"
-            keyboardType="email-address"
-            autoCapitalize="none"
-            left={<TextInput.Icon icon="email" />}
-          />
-
-          <TextInput
-            label="Password"
-            value={password}
-            onChangeText={setPassword}
-            style={styles.input}
-            mode="outlined"
-            secureTextEntry={!showPassword}
-            right={
-              <TextInput.Icon
-                icon={showPassword ? 'eye-off' : 'eye'}
-                onPress={() => setShowPassword(!showPassword)}
-              />
-            }
-            left={<TextInput.Icon icon="lock" />}
-          />
-          <HelperText type="info" visible={true}>
-            Password must be at least 8 characters long
-          </HelperText>
-
-          <TextInput
-            label="Confirm Password"
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            style={styles.input}
-            mode="outlined"
-            secureTextEntry={!showConfirmPassword}
-            right={
-              <TextInput.Icon
-                icon={showConfirmPassword ? 'eye-off' : 'eye'}
-                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-              />
-            }
-            left={<TextInput.Icon icon="lock-check" />}
-          />
-
-          <Button
-            mode="contained"
-            onPress={handleRegister}
-            style={styles.button}
-            loading={isLoading}
-            disabled={isLoading}
-          >
-            Create Account
-          </Button>
-
-          <View style={styles.footer}>
-            <Text variant="bodyMedium" style={{ color: theme.colors.secondary }}>
-              Already have an account?{' '}
-            </Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-              <Text style={{ color: theme.colors.primary, fontWeight: 'bold' }}>
-                Sign In
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </Animated.View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      <View style={styles.footer}>
+        <Text>Already have an account? </Text>
+        <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+          <Text style={[styles.link, { color: theme.colors.primary }]}>Sign In</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    padding: 20,
+    justifyContent: 'center',
     backgroundColor: '#fff',
   },
-  scrollContent: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    padding: 20,
-  },
-  content: {
-    width: '100%',
-    maxWidth: 400,
-    alignSelf: 'center',
-  },
-  logoContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    justifyContent: 'center',
-    alignItems: 'center',
-    alignSelf: 'center',
+  header: {
     marginBottom: 30,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.23,
-    shadowRadius: 2.62,
+    alignItems: 'center',
   },
   title: {
-    textAlign: 'center',
+    fontSize: 32,
     fontWeight: 'bold',
     marginBottom: 10,
   },
   subtitle: {
-    textAlign: 'center',
-    marginBottom: 30,
-    opacity: 0.7,
+    fontSize: 16,
+    color: '#666',
   },
   input: {
-    marginBottom: 16,
-  },
-  error: {
-    textAlign: 'center',
-    marginBottom: 16,
+    marginBottom: 15,
   },
   button: {
-    padding: 4,
-    marginTop: 16,
+    marginBottom: 20,
+    paddingVertical: 8,
   },
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 24,
+    marginTop: 20,
+  },
+  link: {
+    fontWeight: 'bold',
+  },
+  errorText: {
+    marginBottom: 20,
+    textAlign: 'center',
   },
 });
 

@@ -1,70 +1,36 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 import { useColorScheme } from 'react-native';
-import { Provider as PaperProvider } from 'react-native-paper';
-import { lightTheme, darkTheme } from '../theme';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
-type ThemeType = 'light' | 'dark' | 'system';
+import { MD3LightTheme, MD3DarkTheme } from 'react-native-paper';
 
 interface ThemeContextType {
-  theme: typeof lightTheme;
-  themeType: ThemeType;
-  setThemeType: (type: ThemeType) => void;
+  theme: typeof MD3LightTheme;
   isDarkMode: boolean;
+  toggleTheme: () => void;
 }
 
-const ThemeContext = createContext<ThemeContextType>({
-  theme: lightTheme,
-  themeType: 'system',
-  setThemeType: () => {},
-  isDarkMode: false,
-});
+const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-export const useAppTheme = () => useContext(ThemeContext);
-
-export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
   const colorScheme = useColorScheme();
-  const [themeType, setThemeType] = useState<ThemeType>('system');
+  const [isDarkMode, setIsDarkMode] = useState(colorScheme === 'dark');
 
-  useEffect(() => {
-    loadThemeType();
-  }, []);
+  const theme = isDarkMode ? MD3DarkTheme : MD3LightTheme;
 
-  const loadThemeType = async () => {
-    try {
-      const savedThemeType = await AsyncStorage.getItem('@theme_type');
-      if (savedThemeType) {
-        setThemeType(savedThemeType as ThemeType);
-      }
-    } catch (error) {
-      console.log('Error loading theme type:', error);
-    }
+  const toggleTheme = () => {
+    setIsDarkMode(!isDarkMode);
   };
-
-  const setAndSaveThemeType = async (type: ThemeType) => {
-    try {
-      await AsyncStorage.setItem('@theme_type', type);
-      setThemeType(type);
-    } catch (error) {
-      console.log('Error saving theme type:', error);
-    }
-  };
-
-  const isDarkMode =
-    themeType === 'system' ? colorScheme === 'dark' : themeType === 'dark';
-
-  const theme = isDarkMode ? darkTheme : lightTheme;
 
   return (
-    <ThemeContext.Provider
-      value={{
-        theme,
-        themeType,
-        setThemeType: setAndSaveThemeType,
-        isDarkMode,
-      }}
-    >
-      <PaperProvider theme={theme}>{children}</PaperProvider>
+    <ThemeContext.Provider value={{ theme, isDarkMode, toggleTheme }}>
+      {children}
     </ThemeContext.Provider>
   );
+};
+
+export const useAppTheme = () => {
+  const context = useContext(ThemeContext);
+  if (context === undefined) {
+    throw new Error('useAppTheme must be used within a ThemeProvider');
+  }
+  return context;
 };

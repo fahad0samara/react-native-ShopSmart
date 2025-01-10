@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, Platform } from 'react-native';
-import { Text, TextInput, Button, useTheme, IconButton } from 'react-native-paper';
+import { Text, TextInput, Button, useTheme, IconButton, Surface } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { useNavigation } from '@react-navigation/native';
 import { COLORS } from '../utils/constants';
 
 const MyDetailsScreen = () => {
   const theme = useTheme();
+  const navigation = useNavigation();
   const [formData, setFormData] = useState({
     firstName: 'John',
     lastName: 'Doe',
@@ -31,17 +33,18 @@ const MyDetailsScreen = () => {
   const renderField = (label: string, value: string, key: keyof typeof formData) => {
     return (
       <View style={styles.fieldContainer}>
-        <Text style={styles.fieldLabel}>{label}</Text>
+        <Text style={[styles.fieldLabel, { color: theme.colors.onSurfaceVariant }]}>{label}</Text>
         {isEditing ? (
           <TextInput
             value={value}
             onChangeText={(text) => setFormData({ ...formData, [key]: text })}
-            style={styles.input}
+            style={[styles.input, { backgroundColor: theme.colors.elevation.level1 }]}
+            textColor={theme.colors.onSurface}
             mode="outlined"
           />
         ) : (
           <View style={styles.valueContainer}>
-            <Text style={styles.fieldValue}>{value}</Text>
+            <Text style={[styles.fieldValue, { color: theme.colors.onSurface }]}>{value}</Text>
           </View>
         )}
       </View>
@@ -49,46 +52,96 @@ const MyDetailsScreen = () => {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar style="light" />
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.background }]}>
+      <StatusBar style={theme.dark ? "light" : "dark"} />
       <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>My Details</Text>
-          <IconButton
-            icon={isEditing ? 'check' : 'pencil'}
-            iconColor={theme.colors.primary}
-            size={24}
-            onPress={() => {
-              if (isEditing) {
-                handleSave();
-              } else {
-                setIsEditing(true);
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              }
-            }}
-          />
-        </View>
+        <Surface style={[styles.header, { backgroundColor: theme.colors.elevation.level2, ...Platform.select({
+          ios: {
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.1,
+            shadowRadius: 4,
+          },
+          android: {
+            elevation: 4,
+          },
+        }) }]}>
+          <View style={styles.headerTop}>
+            <IconButton
+              icon="arrow-left"
+              size={24}
+              onPress={() => navigation.goBack()}
+              style={styles.backButton}
+            />
+            <Text variant="headlineMedium" style={[styles.headerTitle, { color: theme.colors.onSurface }]}>
+              My Details
+            </Text>
+            <IconButton
+              icon={isEditing ? 'check' : 'pencil'}
+              iconColor={theme.colors.primary}
+              size={24}
+              onPress={() => {
+                if (isEditing) {
+                  handleSave();
+                } else {
+                  setIsEditing(true);
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                }
+              }}
+            />
+          </View>
+        </Surface>
 
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Personal Information</Text>
+          <Surface style={[styles.section, { backgroundColor: theme.colors.elevation.level1, ...Platform.select({
+            ios: {
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.1,
+              shadowRadius: 4,
+            },
+            android: {
+              elevation: 2,
+            },
+          }) }]}>
+            <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>Personal Information</Text>
             {renderField('First Name', formData.firstName, 'firstName')}
             {renderField('Last Name', formData.lastName, 'lastName')}
             {renderField('Date of Birth', formData.dateOfBirth, 'dateOfBirth')}
             {renderField('Gender', formData.gender, 'gender')}
-          </View>
+          </Surface>
 
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Contact Information</Text>
+          <Surface style={[styles.section, { backgroundColor: theme.colors.elevation.level1, ...Platform.select({
+            ios: {
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.1,
+              shadowRadius: 4,
+            },
+            android: {
+              elevation: 2,
+            },
+          }) }]}>
+            <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>Contact Information</Text>
             {renderField('Email', formData.email, 'email')}
             {renderField('Phone', formData.phone, 'phone')}
-          </View>
+          </Surface>
 
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Professional Information</Text>
+          <Surface style={[styles.section, { backgroundColor: theme.colors.elevation.level1, ...Platform.select({
+            ios: {
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.1,
+              shadowRadius: 4,
+            },
+            android: {
+              elevation: 2,
+            },
+          }) }]}>
+            <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>Professional Information</Text>
             {renderField('Occupation', formData.occupation, 'occupation')}
             {renderField('Company', formData.company, 'company')}
-          </View>
+          </Surface>
 
           {isEditing && (
             <View style={styles.buttonContainer}>
@@ -120,33 +173,24 @@ const MyDetailsScreen = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#fff',
   },
   container: {
     flex: 1,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     padding: 16,
-    backgroundColor: '#fff',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 4,
-      },
-    }),
+  },
+  headerTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  backButton: {
+    marginRight: 16,
   },
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#1a1a1a',
   },
   content: {
     flex: 1,
@@ -154,25 +198,12 @@ const styles = StyleSheet.create({
   },
   section: {
     marginBottom: 24,
-    backgroundColor: '#fff',
     borderRadius: 12,
     padding: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#1a1a1a',
     marginBottom: 16,
   },
   fieldContainer: {
@@ -180,29 +211,31 @@ const styles = StyleSheet.create({
   },
   fieldLabel: {
     fontSize: 14,
-    color: '#666',
     marginBottom: 8,
   },
   fieldValue: {
     fontSize: 16,
-    color: '#1a1a1a',
   },
   valueContainer: {
     paddingVertical: 12,
     paddingHorizontal: 4,
   },
   input: {
-    backgroundColor: '#fff',
+    marginBottom: 8,
   },
   buttonContainer: {
     marginTop: 24,
     marginBottom: 32,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
   },
   saveButton: {
-    marginBottom: 12,
+    flex: 1,
+    marginRight: 8,
   },
   cancelButton: {
-    borderColor: '#666',
+    flex: 1,
+    marginLeft: 8,
   },
 });
 

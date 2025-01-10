@@ -6,6 +6,23 @@ export type RootStackParamList = {
   Register: undefined;
   ForgotPassword: undefined;
   MainTabs: NavigatorScreenParams<MainTabsParamList>;
+  ProductDetails: {
+    product: {
+      id: string;
+      name: string;
+      price: number;
+      category: string;
+      image: any;
+      description?: string;
+      rating?: number;
+      reviews?: number;
+      isOrganic?: boolean;
+      unit?: string;
+      inStock?: boolean;
+      isNew?: boolean;
+      discount?: number;
+    };
+  };
 };
 
 export type ProfileStackParamList = {

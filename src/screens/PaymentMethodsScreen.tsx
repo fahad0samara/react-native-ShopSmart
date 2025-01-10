@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, Platform, TouchableOpacity } from 'react-native';
-import { Text, Button, useTheme, IconButton, FAB, Portal, Modal, TextInput, Switch } from 'react-native-paper';
+import { Text, Button, useTheme, IconButton, FAB, Portal, Modal, TextInput, Switch, Surface } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { useNavigation } from '@react-navigation/native';
 import { COLORS } from '../utils/constants';
 
 interface PaymentMethod {
@@ -18,6 +19,7 @@ interface PaymentMethod {
 
 const PaymentMethodsScreen = () => {
   const theme = useTheme();
+  const navigation = useNavigation();
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([
     {
       id: '1',
@@ -101,7 +103,7 @@ const PaymentMethodsScreen = () => {
   };
 
   const renderCard = (card: PaymentMethod) => (
-    <View key={card.id} style={styles.cardContainer}>
+    <Surface key={card.id} style={[styles.cardContainer, { backgroundColor: theme.colors.elevation.level2 }]}>
       <View style={styles.cardHeader}>
         <View style={styles.cardTypeContainer}>
           <MaterialCommunityIcons
@@ -109,7 +111,7 @@ const PaymentMethodsScreen = () => {
             size={24}
             color={theme.colors.primary}
           />
-          <Text style={styles.cardType}>
+          <Text style={[styles.cardType, { color: theme.colors.onSurface }]}>
             {card.type.charAt(0).toUpperCase() + card.type.slice(1)} Card
           </Text>
           {card.isDefault && (
@@ -145,10 +147,10 @@ const PaymentMethodsScreen = () => {
         </View>
       </View>
       <View style={styles.cardDetails}>
-        <Text style={styles.cardNumber}>{card.cardNumber}</Text>
+        <Text style={[styles.cardNumber, { color: theme.colors.onSurface }]}>{card.cardNumber}</Text>
         <View style={styles.cardInfo}>
-          <Text style={styles.cardInfoText}>{card.cardHolder}</Text>
-          <Text style={styles.cardInfoText}>Expires: {card.expiryDate}</Text>
+          <Text style={[styles.cardInfoText, { color: theme.colors.onSurface }]}>{card.cardHolder}</Text>
+          <Text style={[styles.cardInfoText, { color: theme.colors.onSurface }]}>Expires: {card.expiryDate}</Text>
         </View>
       </View>
       {!card.isDefault && (
@@ -160,16 +162,26 @@ const PaymentMethodsScreen = () => {
           Set as Default
         </Button>
       )}
-    </View>
+    </Surface>
   );
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar style="light" />
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.background }]}>
+      <StatusBar style={theme.dark ? "light" : "dark"} />
       <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Payment Methods</Text>
-        </View>
+        <Surface style={[styles.header, { backgroundColor: theme.colors.elevation.level2 }]}>
+          <View style={styles.headerTop}>
+            <IconButton
+              icon="arrow-left"
+              size={24}
+              onPress={() => navigation.goBack()}
+              style={styles.backButton}
+            />
+            <Text variant="headlineMedium" style={[styles.headerTitle, { color: theme.colors.onSurface }]}>
+              Payment Methods
+            </Text>
+          </View>
+        </Surface>
 
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           {paymentMethods.map(renderCard)}
@@ -183,56 +195,80 @@ const PaymentMethodsScreen = () => {
               setEditingCard(null);
               resetForm();
             }}
-            contentContainerStyle={styles.modal}
+            contentContainerStyle={[styles.modal, { backgroundColor: theme.colors.elevation.level3 }]}
           >
-            <Text style={styles.modalTitle}>
+            <Text style={[styles.modalTitle, { color: theme.colors.onSurface }]}>
               {editingCard ? 'Edit Card' : 'Add New Card'}
             </Text>
             <View style={styles.cardTypeSwitch}>
-              <Text>Card Type:</Text>
+              <Text style={{ color: theme.colors.onSurface }}>Card Type:</Text>
               <Switch
                 value={formData.type === 'credit'}
                 onValueChange={(value) =>
                   setFormData({ ...formData, type: value ? 'credit' : 'debit' })
                 }
               />
-              <Text>{formData.type === 'credit' ? 'Credit' : 'Debit'}</Text>
+              <Text style={{ color: theme.colors.onSurface }}>{formData.type === 'credit' ? 'Credit' : 'Debit'}</Text>
             </View>
             <TextInput
               label="Card Number"
               value={formData.cardNumber}
               onChangeText={(text) => setFormData({ ...formData, cardNumber: text })}
-              style={styles.input}
+              style={[styles.input, { backgroundColor: theme.colors.elevation.level1 }]}
+              textColor={theme.colors.onSurface}
               mode="outlined"
-              keyboardType="numeric"
             />
             <TextInput
               label="Card Holder Name"
               value={formData.cardHolder}
               onChangeText={(text) => setFormData({ ...formData, cardHolder: text })}
-              style={styles.input}
+              style={[styles.input, { backgroundColor: theme.colors.elevation.level1 }]}
+              textColor={theme.colors.onSurface}
               mode="outlined"
             />
             <TextInput
-              label="Expiry Date (MM/YY)"
+              label="Expiry Date"
               value={formData.expiryDate}
               onChangeText={(text) => setFormData({ ...formData, expiryDate: text })}
-              style={styles.input}
+              style={[styles.input, { backgroundColor: theme.colors.elevation.level1 }]}
+              textColor={theme.colors.onSurface}
               mode="outlined"
             />
-            <Button
-              mode="contained"
-              onPress={editingCard ? handleEditCard : handleAddCard}
-              style={styles.modalButton}
-            >
-              {editingCard ? 'Save Changes' : 'Add Card'}
-            </Button>
+            <View style={styles.defaultSwitch}>
+              <Text style={{ color: theme.colors.onSurface }}>Set as Default</Text>
+              <Switch
+                value={formData.isDefault}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, isDefault: value })
+                }
+              />
+            </View>
+            <View style={styles.modalActions}>
+              <Button
+                mode="contained"
+                onPress={editingCard ? handleEditCard : handleAddCard}
+                style={styles.modalButton}
+              >
+                {editingCard ? 'Save Changes' : 'Add Card'}
+              </Button>
+              <Button
+                mode="outlined"
+                onPress={() => {
+                  setShowAddModal(false);
+                  setEditingCard(null);
+                  resetForm();
+                }}
+                style={styles.modalButton}
+              >
+                Cancel
+              </Button>
+            </View>
           </Modal>
         </Portal>
 
         <FAB
           icon="plus"
-          style={styles.fab}
+          style={[styles.fab, { backgroundColor: theme.colors.primary }]}
           onPress={() => {
             setShowAddModal(true);
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -246,51 +282,32 @@ const PaymentMethodsScreen = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#fff',
   },
   container: {
     flex: 1,
   },
   header: {
     padding: 16,
-    backgroundColor: '#fff',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 4,
-      },
-    }),
+  },
+  headerTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  backButton: {
+    marginRight: 16,
   },
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#1a1a1a',
   },
   content: {
     flex: 1,
     padding: 16,
   },
   cardContainer: {
-    backgroundColor: '#fff',
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
   },
   cardHeader: {
     flexDirection: 'row',
@@ -336,7 +353,6 @@ const styles = StyleSheet.create({
   },
   cardInfoText: {
     fontSize: 14,
-    color: '#666',
   },
   setDefaultButton: {
     marginTop: 8,
@@ -347,7 +363,6 @@ const styles = StyleSheet.create({
     bottom: 16,
   },
   modal: {
-    backgroundColor: '#fff',
     margin: 20,
     borderRadius: 12,
     padding: 20,
@@ -368,6 +383,16 @@ const styles = StyleSheet.create({
   },
   modalButton: {
     marginTop: 8,
+  },
+  defaultSwitch: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
   },
 });
 

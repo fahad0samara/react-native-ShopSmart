@@ -1,12 +1,15 @@
 import React from 'react';
-import { View, StyleSheet, ScrollView, Image } from 'react-native';
-import { Text, Card, Button, ProgressBar, List, useTheme, Surface } from 'react-native-paper';
+import { View, StyleSheet, ScrollView } from 'react-native';
+import { Text, Card, Button, ProgressBar, List, useTheme, Surface, IconButton, Divider } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { useNavigation } from '@react-navigation/native';
+import { StatusBar } from 'expo-status-bar';
 
 const RewardsScreen = () => {
   const theme = useTheme();
+  const navigation = useNavigation();
 
   const rewards = [
     {
@@ -62,50 +65,63 @@ const RewardsScreen = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <StatusBar style={theme.dark ? "light" : "dark"} />
+      <View style={styles.headerContainer}>
+        <IconButton
+          icon="arrow-left"
+          size={24}
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
+        />
+        <Text variant="headlineMedium" style={[styles.headerTitle, { color: theme.colors.onSurface }]}>
+          My Rewards
+        </Text>
+      </View>
+      
       <ScrollView>
-        <Surface style={styles.pointsCard} elevation={2}>
+        <Surface style={[styles.pointsCard, { backgroundColor: theme.colors.elevation.level2 }]} elevation={2}>
           <View style={styles.pointsHeader}>
             <MaterialCommunityIcons name="star-circle" size={40} color={theme.colors.primary} />
             <View style={styles.pointsInfo}>
-              <Text variant="titleLarge">1,275 Points</Text>
-              <Text variant="bodyMedium">Silver Member</Text>
+              <Text variant="titleLarge" style={{ color: theme.colors.onSurface }}>1,275 Points</Text>
+              <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>Silver Member</Text>
             </View>
           </View>
           <View style={styles.tierProgress}>
-            <Text variant="bodySmall">725 points to Gold</Text>
+            <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>725 points to Gold</Text>
             <ProgressBar
               progress={0.63}
               color={theme.colors.primary}
               style={styles.progressBar}
             />
             <View style={styles.tierLabels}>
-              <Text variant="bodySmall">Silver</Text>
-              <Text variant="bodySmall">Gold</Text>
+              <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>Silver</Text>
+              <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>Gold</Text>
             </View>
           </View>
         </Surface>
 
         <View style={styles.section}>
-          <Text variant="titleMedium" style={styles.sectionTitle}>
+          <Text variant="titleMedium" style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>
             Available Rewards
           </Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.rewardsScroll}>
             {rewards.map((reward) => (
-              <Card key={reward.id} style={styles.rewardCard}>
+              <Card key={reward.id} style={[styles.rewardCard, { backgroundColor: theme.colors.elevation.level1 }]}>
                 <Card.Content>
                   <MaterialCommunityIcons
-                    name={reward.icon as any}
+                    name={reward.icon}
                     size={32}
                     color={theme.colors.primary}
                   />
-                  <Text variant="titleMedium" style={styles.rewardTitle}>
+                  <Text variant="titleMedium" style={[styles.rewardTitle, { color: theme.colors.onSurface }]}>
                     {reward.title}
                   </Text>
-                  <Text variant="bodySmall" style={styles.pointsRequired}>
+                  <Text variant="bodySmall" style={[styles.pointsRequired, { color: theme.colors.onSurfaceVariant }]}>
                     {reward.points} Points
                   </Text>
-                  <Text variant="bodySmall" style={styles.rewardDescription}>
+                  <Text variant="bodySmall" style={[styles.rewardDescription, { color: theme.colors.onSurfaceVariant }]}>
                     {reward.description}
                   </Text>
                 </Card.Content>
@@ -124,53 +140,62 @@ const RewardsScreen = () => {
         </View>
 
         <View style={styles.section}>
-          <Text variant="titleMedium" style={styles.sectionTitle}>
+          <Text variant="titleMedium" style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>
             How to Earn Points
           </Text>
-          <Card style={styles.earnCard}>
+          <Card style={[styles.earnCard, { backgroundColor: theme.colors.elevation.level1 }]}>
             <Card.Content>
               <List.Item
                 title="Make a Purchase"
                 description="Earn 1 point for every $1 spent"
-                left={props => <List.Icon {...props} icon="cart" />}
+                titleStyle={{ color: theme.colors.onSurface }}
+                descriptionStyle={{ color: theme.colors.onSurfaceVariant }}
+                left={props => <List.Icon {...props} icon="cart" color={theme.colors.primary} />}
               />
               <List.Item
                 title="Write a Review"
                 description="Earn 50 points per review"
-                left={props => <List.Icon {...props} icon="star" />}
+                titleStyle={{ color: theme.colors.onSurface }}
+                descriptionStyle={{ color: theme.colors.onSurfaceVariant }}
+                left={props => <List.Icon {...props} icon="star" color={theme.colors.primary} />}
               />
               <List.Item
                 title="Refer a Friend"
                 description="Earn 200 points per referral"
-                left={props => <List.Icon {...props} icon="account-plus" />}
+                titleStyle={{ color: theme.colors.onSurface }}
+                descriptionStyle={{ color: theme.colors.onSurfaceVariant }}
+                left={props => <List.Icon {...props} icon="account-plus" color={theme.colors.primary} />}
               />
             </Card.Content>
           </Card>
         </View>
 
         <View style={styles.section}>
-          <Text variant="titleMedium" style={styles.sectionTitle}>
+          <Text variant="titleMedium" style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>
             Points History
           </Text>
-          <Card style={styles.historyCard}>
+          <Card style={[styles.historyCard, { backgroundColor: theme.colors.elevation.level1 }]}>
             <Card.Content>
-              {history.map((item) => (
+              {history.map((item, index) => (
                 <React.Fragment key={item.id}>
                   <List.Item
                     title={item.title}
                     description={`${item.description} • ${item.date}`}
+                    titleStyle={{ color: theme.colors.onSurface }}
+                    descriptionStyle={{ color: theme.colors.onSurfaceVariant }}
                     right={() => (
                       <Text
+                        variant="bodyLarge"
                         style={[
                           styles.pointsText,
-                          { color: item.points.startsWith('+') ? 'green' : 'red' },
+                          { color: item.points.startsWith('+') ? theme.colors.primary : theme.colors.error },
                         ]}
                       >
                         {item.points}
                       </Text>
                     )}
                   />
-                  {item.id !== history[history.length - 1].id && <Divider />}
+                  {index < history.length - 1 && <Divider />}
                 </React.Fragment>
               ))}
             </Card.Content>
@@ -184,12 +209,25 @@ const RewardsScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+  },
+  headerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  headerTitle: {
+    flex: 1,
+    textAlign: 'center',
+    marginRight: 40,
+  },
+  backButton: {
+    margin: 0,
   },
   pointsCard: {
     margin: 16,
-    padding: 16,
     borderRadius: 12,
+    padding: 16,
   },
   pointsHeader: {
     flexDirection: 'row',
@@ -197,7 +235,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   pointsInfo: {
-    marginLeft: 12,
+    marginLeft: 16,
   },
   tierProgress: {
     marginTop: 8,
@@ -212,37 +250,39 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   section: {
-    marginBottom: 24,
+    marginTop: 24,
+    paddingHorizontal: 16,
   },
   sectionTitle: {
-    marginHorizontal: 16,
-    marginBottom: 12,
-    fontWeight: 'bold',
+    marginBottom: 16,
+  },
+  rewardsScroll: {
+    marginHorizontal: -16,
+    paddingHorizontal: 16,
   },
   rewardCard: {
     width: 200,
-    marginHorizontal: 8,
-    marginLeft: 16,
+    marginRight: 16,
+    borderRadius: 12,
   },
   rewardTitle: {
-    marginTop: 8,
+    marginTop: 12,
     marginBottom: 4,
   },
   pointsRequired: {
-    marginBottom: 4,
-    opacity: 0.7,
+    marginBottom: 8,
   },
   rewardDescription: {
-    opacity: 0.7,
+    marginBottom: 16,
   },
   redeemButton: {
     marginTop: 8,
   },
   earnCard: {
-    marginHorizontal: 16,
+    borderRadius: 12,
   },
   historyCard: {
-    marginHorizontal: 16,
+    borderRadius: 12,
   },
   pointsText: {
     fontWeight: 'bold',

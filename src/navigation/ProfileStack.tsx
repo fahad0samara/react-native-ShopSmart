@@ -23,6 +23,7 @@ const ProfileStack = () => {
   return (
     <Stack.Navigator
       screenOptions={{
+        headerShown: false,
         headerStyle: {
           backgroundColor: theme.colors.surface,
         },

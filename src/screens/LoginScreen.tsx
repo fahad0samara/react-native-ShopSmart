@@ -1,320 +1,162 @@
-import React, { useState, useRef, useEffect } from 'react';
-import {
-  View,
-  StyleSheet,
-  Dimensions,
-  Animated,
-  TouchableOpacity,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-} from 'react-native';
-import {
-  Text,
-  TextInput,
-  Button,
-  useTheme,
-  IconButton,
-  Surface,
-  Divider,
-  HelperText,
-  Snackbar,
-} from 'react-native-paper';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import React, { useState } from 'react';
+import { View, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { Text, TextInput, Button, useTheme } from 'react-native-paper';
+import { signInWithEmailAndPassword } from '@firebase/auth';
+import { auth } from '../config/firebase';
+import { useNavigation } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
-import { LinearGradient } from 'expo-linear-gradient';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useBiometrics } from '../hooks/useBiometrics';
-import { useSocialAuth } from '../hooks/useSocialAuth';
-import { useAuth } from '../context/AuthContext';
-import LoadingOverlay from '../components/LoadingOverlay';
-import * as Animatable from 'react-native-animatable';
 
-const { width, height } = Dimensions.get('window');
-
-const LoginScreen = ({ navigation }) => {
+const LoginScreen = () => {
   const theme = useTheme();
+  const navigation = useNavigation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [snackbarVisible, setSnackbarVisible] = useState(false);
-  const [loadingMessage, setLoadingMessage] = useState('');
-
-  const { login } = useAuth();
-  const { isAvailable, isEnabled, biometricType, authenticate } = useBiometrics();
-  const { isLoading: isSocialLoading, handleGoogleSignIn, handleFacebookSignIn } = useSocialAuth();
-
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(50)).current;
-
-  useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 1000,
-        useNativeDriver: true,
-      }),
-      Animated.spring(slideAnim, {
-        toValue: 0,
-        tension: 50,
-        friction: 7,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, []);
 
   const handleLogin = async () => {
-    if (!email.trim() || !password.trim()) {
+    if (loading) return;
+    
+    if (!email || !password) {
       setError('Please fill in all fields');
-      setSnackbarVisible(true);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       return;
     }
 
-    if (!email.includes('@')) {
-      setError('Please enter a valid email address');
-      setSnackbarVisible(true);
-      return;
-    }
+    setLoading(true);
+    setError('');
 
     try {
-      setIsLoading(true);
-      setLoadingMessage('Logging in...');
-      await login(email, password);
-      // Login successful - navigation will be handled by App.tsx
-    } catch (error) {
-      setError('Invalid email or password');
-      setSnackbarVisible(true);
+      await signInWithEmailAndPassword(auth, email, password);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      // Navigation will be handled by the auth state listener
+    } catch (err: any) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-    } finally {
-      setIsLoading(false);
-      setLoadingMessage('');
+      if (err.code === 'auth/invalid-email') {
+        setError('Invalid email address');
+      } else if (err.code === 'auth/wrong-password') {
+        setError('Incorrect password');
+      } else if (err.code === 'auth/user-not-found') {
+        setError('No account found with this email');
+      } else {
+        setError('Failed to login. Please try again.');
+      }
+      setLoading(false);
     }
   };
 
-  const handleSocialLogin = async (provider: 'google' | 'facebook') => {
-    try {
-      setLoadingMessage(`Connecting to ${provider}...`);
-      setIsLoading(true);
-      
-      const success = await (provider === 'google' ? handleGoogleSignIn() : handleFacebookSignIn());
-      
-      if (success) {
-        setLoadingMessage('Success! Redirecting...');
-        await new Promise(resolve => setTimeout(resolve, 500));
-      }
-    } catch (error) {
-      console.error(`${provider} login error:`, error);
-      setError(`${provider} login failed`);
-      setSnackbarVisible(true);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-    } finally {
-      setIsLoading(false);
-      setLoadingMessage('');
-    }
+  const handleForgotPassword = () => {
+    navigation.navigate('ForgotPassword');
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
-    >
-      <LinearGradient
-        colors={[theme.colors.primary + '20', 'transparent']}
-        style={StyleSheet.absoluteFill}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <Text style={[styles.title, { color: theme.colors.primary }]}>Welcome Back!</Text>
+        <Text style={styles.subtitle}>Sign in to continue</Text>
+      </View>
+
+      {error ? (
+        <Text style={[styles.errorText, { color: theme.colors.error }]}>{error}</Text>
+      ) : null}
+
+      <TextInput
+        label="Email"
+        value={email}
+        onChangeText={setEmail}
+        mode="outlined"
+        keyboardType="email-address"
+        autoCapitalize="none"
+        style={styles.input}
+        left={<TextInput.Icon icon="email" />}
+        error={error.includes('email')}
       />
 
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
+      <TextInput
+        label="Password"
+        value={password}
+        onChangeText={setPassword}
+        mode="outlined"
+        secureTextEntry
+        style={styles.input}
+        left={<TextInput.Icon icon="lock" />}
+        error={error.includes('password')}
+      />
+
+      <TouchableOpacity
+        onPress={handleForgotPassword}
+        style={styles.forgotPassword}
       >
-        <Animated.View
-          style={[
-            styles.content,
-            {
-              opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }],
-            },
-          ]}
-        >
-          <Animatable.View 
-            animation="bounceIn" 
-            duration={1500} 
-            delay={500}
-            style={styles.logoContainer}
-          >
-            <Surface style={styles.logoContainer}>
-              <MaterialCommunityIcons
-                name="shopping"
-                size={50}
-                color={theme.colors.primary}
-              />
-            </Surface>
-          </Animatable.View>
+        <Text style={[styles.forgotPasswordText, { color: theme.colors.primary }]}>
+          Forgot Password?
+        </Text>
+      </TouchableOpacity>
 
-          <Animatable.View animation="fadeInUp" delay={700}>
-            <TextInput
-              label="Email"
-              value={email}
-              onChangeText={setEmail}
-              mode="outlined"
-              style={styles.input}
-              autoCapitalize="none"
-              keyboardType="email-address"
-              error={error.includes('email')}
-              left={<TextInput.Icon icon="email" />}
-            />
-            {error.includes('email') && (
-              <HelperText type="error" visible={true}>
-                {error}
-              </HelperText>
-            )}
-          </Animatable.View>
-
-          <Animatable.View animation="fadeInUp" delay={900}>
-            <TextInput
-              label="Password"
-              value={password}
-              onChangeText={setPassword}
-              mode="outlined"
-              style={styles.input}
-              secureTextEntry={!showPassword}
-              error={error.includes('password')}
-              left={<TextInput.Icon icon="lock" />}
-              right={
-                <TextInput.Icon
-                  icon={showPassword ? 'eye-off' : 'eye'}
-                  onPress={() => setShowPassword(!showPassword)}
-                />
-              }
-            />
-          </Animatable.View>
-
-          <Animatable.View animation="fadeInUp" delay={1100}>
-            <Button
-              mode="contained"
-              onPress={handleLogin}
-              style={styles.button}
-              loading={isLoading}
-              disabled={isLoading}
-            >
-              Login
-            </Button>
-
-            <View style={styles.socialButtons}>
-              <Button
-                mode="outlined"
-                onPress={() => handleSocialLogin('google')}
-                style={[styles.socialButton, { marginRight: 8 }]}
-                icon="google"
-                disabled={isLoading}
-              >
-                Google
-              </Button>
-              <Button
-                mode="outlined"
-                onPress={() => handleSocialLogin('facebook')}
-                style={styles.socialButton}
-                icon="facebook"
-                disabled={isLoading}
-              >
-                Facebook
-              </Button>
-            </View>
-          </Animatable.View>
-
-          <Animatable.View 
-            animation="fadeIn" 
-            delay={1300} 
-            style={styles.footer}
-          >
-            <TouchableOpacity
-              onPress={() => navigation.navigate('Register')}
-              style={styles.footerButton}
-            >
-              <Text>Don't have an account? </Text>
-              <Text style={{ color: theme.colors.primary }}>Sign Up</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={() => navigation.navigate('ForgotPassword')}
-              style={[styles.footerButton, { marginTop: 8 }]}
-            >
-              <Text style={{ color: theme.colors.primary }}>
-                Forgot Password?
-              </Text>
-            </TouchableOpacity>
-          </Animatable.View>
-        </Animated.View>
-      </ScrollView>
-
-      <LoadingOverlay visible={isLoading} message={loadingMessage} />
-
-      <Snackbar
-        visible={snackbarVisible}
-        onDismiss={() => setSnackbarVisible(false)}
-        duration={3000}
-        action={{
-          label: 'Dismiss',
-          onPress: () => setSnackbarVisible(false),
-        }}
+      <Button
+        mode="contained"
+        onPress={handleLogin}
+        loading={loading}
+        disabled={loading}
+        style={styles.button}
       >
-        {error}
-      </Snackbar>
-    </KeyboardAvoidingView>
+        Login
+      </Button>
+
+      <View style={styles.footer}>
+        <Text>Don't have an account? </Text>
+        <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+          <Text style={[styles.link, { color: theme.colors.primary }]}>Sign Up</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    padding: 20,
+    justifyContent: 'center',
     backgroundColor: '#fff',
   },
-  scrollContent: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    padding: 20,
-  },
-  content: {
-    width: '100%',
-    maxWidth: 400,
-    alignSelf: 'center',
-  },
-  logoContainer: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    justifyContent: 'center',
+  header: {
+    marginBottom: 30,
     alignItems: 'center',
-    alignSelf: 'center',
-    marginBottom: 32,
-    elevation: 4,
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#666',
   },
   input: {
-    marginBottom: 16,
+    marginBottom: 15,
+  },
+  forgotPassword: {
+    alignSelf: 'flex-end',
+    marginBottom: 20,
+  },
+  forgotPasswordText: {
+    fontSize: 14,
   },
   button: {
-    marginTop: 8,
-    marginBottom: 16,
-  },
-  socialButtons: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 8,
-  },
-  socialButton: {
-    flex: 1,
+    marginBottom: 20,
+    paddingVertical: 8,
   },
   footer: {
-    marginTop: 32,
-    alignItems: 'center',
-  },
-  footerButton: {
     flexDirection: 'row',
-    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 20,
+  },
+  link: {
+    fontWeight: 'bold',
+  },
+  errorText: {
+    marginBottom: 20,
+    textAlign: 'center',
   },
 });
 

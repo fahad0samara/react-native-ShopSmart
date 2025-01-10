@@ -10,11 +10,14 @@ import {
   TextInput,
   Searchbar,
   Card,
+  Surface,
+  IconButton,
 } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { useNavigation } from '@react-navigation/native';
 import { COLORS } from '../utils/constants';
 
 interface FAQItem {
@@ -26,6 +29,7 @@ interface FAQItem {
 
 const HelpSupportScreen = () => {
   const theme = useTheme();
+  const navigation = useNavigation();
   const [searchQuery, setSearchQuery] = useState('');
   const [showContactModal, setShowContactModal] = useState(false);
   const [message, setMessage] = useState('');
@@ -86,23 +90,36 @@ const HelpSupportScreen = () => {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar style="light" />
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.background }]}>
+      <StatusBar style={theme.dark ? "light" : "dark"} />
       <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Help & Support</Text>
-        </View>
+        <Surface style={[styles.header, { backgroundColor: theme.colors.elevation.level2 }]}>
+          <View style={styles.headerTop}>
+            <IconButton
+              icon="arrow-left"
+              size={24}
+              onPress={() => navigation.goBack()}
+              style={styles.backButton}
+            />
+            <Text variant="headlineMedium" style={[styles.headerTitle, { color: theme.colors.onSurface }]}>
+              Help & Support
+            </Text>
+          </View>
+        </Surface>
 
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           <Searchbar
             placeholder="Search FAQs..."
             onChangeText={handleSearch}
             value={searchQuery}
-            style={styles.searchBar}
+            style={[styles.searchBar, { backgroundColor: theme.colors.elevation.level1 }]}
+            iconColor={theme.colors.primary}
+            inputStyle={{ color: theme.colors.onSurface }}
+            placeholderTextColor={theme.colors.onSurfaceVariant}
           />
 
           <View style={styles.quickActions}>
-            <Text style={styles.sectionTitle}>Quick Actions</Text>
+            <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>Quick Actions</Text>
             <View style={styles.actionButtons}>
               <Button
                 mode="contained"
@@ -127,16 +144,16 @@ const HelpSupportScreen = () => {
           </View>
 
           <View style={styles.faqSection}>
-            <Text style={styles.sectionTitle}>Frequently Asked Questions</Text>
+            <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>Frequently Asked Questions</Text>
             {filteredFAQs.map((faq) => (
               <Card
                 key={faq.id}
-                style={styles.faqCard}
+                style={[styles.faqCard, { backgroundColor: theme.colors.elevation.level1 }]}
                 onPress={() => toggleFAQ(faq.id)}
               >
                 <Card.Content>
                   <View style={styles.faqHeader}>
-                    <Text style={styles.faqQuestion}>{faq.question}</Text>
+                    <Text style={[styles.faqQuestion, { color: theme.colors.onSurface }]}>{faq.question}</Text>
                     <MaterialCommunityIcons
                       name={expandedFAQ === faq.id ? 'chevron-up' : 'chevron-down'}
                       size={24}
@@ -144,10 +161,10 @@ const HelpSupportScreen = () => {
                     />
                   </View>
                   {expandedFAQ === faq.id && (
-                    <Text style={styles.faqAnswer}>{faq.answer}</Text>
+                    <Text style={[styles.faqAnswer, { color: theme.colors.onSurfaceVariant }]}>{faq.answer}</Text>
                   )}
-                  <View style={styles.categoryBadge}>
-                    <Text style={styles.categoryText}>{faq.category}</Text>
+                  <View style={[styles.categoryBadge, { backgroundColor: theme.colors.primaryContainer }]}>
+                    <Text style={[styles.categoryText, { color: theme.colors.onPrimaryContainer }]}>{faq.category}</Text>
                   </View>
                 </Card.Content>
               </Card>
@@ -155,47 +172,55 @@ const HelpSupportScreen = () => {
           </View>
 
           <View style={styles.contactInfo}>
-            <Text style={styles.sectionTitle}>Contact Information</Text>
-            <List.Item
-              title="Customer Support"
-              description="Available 24/7"
-              left={(props) => (
-                <MaterialCommunityIcons
-                  {...props}
-                  name="headphones"
-                  size={24}
-                  color={theme.colors.primary}
+            <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>Contact Information</Text>
+            <Card style={[styles.contactCard, { backgroundColor: theme.colors.elevation.level1 }]}>
+              <Card.Content>
+                <List.Item
+                  title="Customer Support"
+                  description="Available 24/7"
+                  titleStyle={{ color: theme.colors.onSurface }}
+                  descriptionStyle={{ color: theme.colors.onSurfaceVariant }}
+                  left={(props) => (
+                    <MaterialCommunityIcons
+                      {...props}
+                      name="headphones"
+                      size={24}
+                      color={theme.colors.primary}
+                    />
+                  )}
+                  right={(props) => (
+                    <MaterialCommunityIcons
+                      {...props}
+                      name="phone"
+                      size={24}
+                      color={theme.colors.primary}
+                    />
+                  )}
+                  onPress={() => {
+                    // Add phone call logic
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  }}
                 />
-              )}
-              right={(props) => (
-                <MaterialCommunityIcons
-                  {...props}
-                  name="phone"
-                  size={24}
-                  color={theme.colors.primary}
+                <List.Item
+                  title="Email Support"
+                  description="support@example.com"
+                  titleStyle={{ color: theme.colors.onSurface }}
+                  descriptionStyle={{ color: theme.colors.onSurfaceVariant }}
+                  left={(props) => (
+                    <MaterialCommunityIcons
+                      {...props}
+                      name="email"
+                      size={24}
+                      color={theme.colors.primary}
+                    />
+                  )}
+                  onPress={() => {
+                    // Add email logic
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  }}
                 />
-              )}
-              onPress={() => {
-                // Add phone call logic
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              }}
-            />
-            <List.Item
-              title="Email Support"
-              description="support@example.com"
-              left={(props) => (
-                <MaterialCommunityIcons
-                  {...props}
-                  name="email"
-                  size={24}
-                  color={theme.colors.primary}
-                />
-              )}
-              onPress={() => {
-                // Add email logic
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              }}
-            />
+              </Card.Content>
+            </Card>
           </View>
         </ScrollView>
 
@@ -203,25 +228,27 @@ const HelpSupportScreen = () => {
           <Modal
             visible={showContactModal}
             onDismiss={() => setShowContactModal(false)}
-            contentContainerStyle={styles.modal}
+            contentContainerStyle={[styles.modal, { backgroundColor: theme.colors.elevation.level3 }]}
           >
-            <Text style={styles.modalTitle}>Contact Support</Text>
+            <Text style={[styles.modalTitle, { color: theme.colors.onSurface }]}>Contact Support</Text>
             <TextInput
               label="Message"
               value={message}
               onChangeText={setMessage}
               multiline
               numberOfLines={4}
-              style={styles.messageInput}
               mode="outlined"
+              style={[styles.messageInput, { backgroundColor: theme.colors.elevation.level1 }]}
+              textColor={theme.colors.onSurface}
             />
-            <Button
-              mode="contained"
-              onPress={handleSendMessage}
-              style={styles.modalButton}
-            >
-              Send Message
-            </Button>
+            <View style={styles.modalActions}>
+              <Button mode="contained" onPress={handleSendMessage}>
+                Send Message
+              </Button>
+              <Button mode="outlined" onPress={() => setShowContactModal(false)}>
+                Cancel
+              </Button>
+            </View>
           </Modal>
         </Portal>
       </View>
@@ -232,30 +259,23 @@ const HelpSupportScreen = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#fff',
   },
   container: {
     flex: 1,
   },
   header: {
     padding: 16,
-    backgroundColor: '#fff',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 4,
-      },
-    }),
+  },
+  headerTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  backButton: {
+    marginRight: 16,
   },
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#1a1a1a',
   },
   content: {
     flex: 1,
@@ -299,10 +319,8 @@ const styles = StyleSheet.create({
   },
   faqAnswer: {
     marginTop: 8,
-    color: '#666',
   },
   categoryBadge: {
-    backgroundColor: COLORS.primary + '20',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
@@ -310,7 +328,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   categoryText: {
-    color: COLORS.primary,
     fontSize: 12,
     fontWeight: '500',
   },
@@ -319,20 +336,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
+  },
+  contactCard: {
+    elevation: 2,
   },
   modal: {
-    backgroundColor: '#fff',
     margin: 20,
     borderRadius: 12,
     padding: 20,
@@ -345,8 +353,9 @@ const styles = StyleSheet.create({
   messageInput: {
     marginBottom: 16,
   },
-  modalButton: {
-    marginTop: 8,
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
   },
 });
 

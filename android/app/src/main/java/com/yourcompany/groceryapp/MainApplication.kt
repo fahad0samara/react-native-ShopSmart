@@ -1,4 +1,4 @@
-package com.fahad0.expoapp
+package com.yourcompany.groceryapp
 
 import android.app.Application
 import android.content.res.Configuration

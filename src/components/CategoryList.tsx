@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { Text } from 'react-native-paper';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { Category } from '../types';
+import { useTheme } from 'react-native-paper';
 import { getCategories } from '../services/api';
+import { Category } from '../types';
 
 const CategoryList = () => {
+  const theme = useTheme();
   const [categories, setCategories] = useState<Category[]>([]);
 
   useEffect(() => {
@@ -34,23 +35,31 @@ const CategoryList = () => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Categories</Text>
+        <Text style={[styles.title, { color: theme.colors.onSurface }]}>Categories</Text>
         <TouchableOpacity>
-          <Text style={styles.viewAll}>View All</Text>
+          <Text style={[styles.viewAll, { color: theme.colors.primary }]}>View All</Text>
         </TouchableOpacity>
       </View>
       
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.scrollView}>
         {categories.map((category) => (
           <TouchableOpacity key={category.id} style={styles.categoryItem}>
-            <View style={styles.iconContainer}>
+            <View style={[
+              styles.iconContainer, 
+              { 
+                backgroundColor: theme.dark ? theme.colors.elevation.level2 : theme.colors.surfaceVariant,
+                borderColor: theme.colors.outline,
+              }
+            ]}>
               <MaterialCommunityIcons 
                 name={getIconName(category.name)} 
                 size={24} 
-                color="#00B761" 
+                color={theme.colors.primary}
               />
             </View>
-            <Text style={styles.categoryName}>{category.name}</Text>
+            <Text style={[styles.categoryName, { color: theme.colors.onSurface }]}>
+              {category.name}
+            </Text>
           </TouchableOpacity>
         ))}
       </ScrollView>
@@ -74,7 +83,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   viewAll: {
-    color: '#00B761',
+    fontSize: 14,
   },
   scrollView: {
     paddingLeft: 16,
@@ -88,14 +97,13 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#F5F5F5',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,
+    borderWidth: 1,
   },
   categoryName: {
     fontSize: 14,
-    color: '#333',
     textAlign: 'center',
   },
 });
